@@ -1,0 +1,5 @@
+rmgflow:
+  jwt:
+    secret: test-secret-key-at-least-256-bits-long-for-hmac-sha-signing
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
