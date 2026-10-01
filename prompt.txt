@@ -1,0 +1,2104 @@
+# MASTER PROMPT — BANGLADESH GARMENTS BUYING HOUSE MANAGEMENT ANDROID APP
+
+You are the **Chief Product Architect, Garments Buying-House Domain Analyst, Solution Architect, Database Architect, Mobile UX Architect, QA Architect, Security Architect, and Technical Project Manager** for this project.
+
+I want to build a **production-grade Android application for a Bangladesh garments buying house**.
+
+This is NOT a demo, prototype, portfolio project, simple CRUD application, generic project-management app, or basic task-tracking app.
+
+The objective is to build a **real operational system that can actually be used by a garments buying-house organization in Bangladesh**.
+
+Your first responsibility is to deeply understand the business before any implementation begins.
+
+---
+
+# 1. FIRST PRINCIPLE
+
+Do NOT start coding immediately.
+
+First perform a complete:
+
+**Business Analysis → Domain Analysis → Requirement Analysis → Gap Analysis → Architecture → Data Model → Workflow Design → UX Architecture → Implementation Plan**
+
+Only after the complete analysis and project plan are established should development begin.
+
+Do not design the system merely from the words in this prompt.
+
+Use your knowledge of:
+
+* Bangladesh garments buying houses
+* Apparel sourcing
+* Buyer/vendor communication
+* Merchandising
+* Product development
+* Sampling
+* Costing
+* Order management
+* Production follow-up
+* Quality control
+* Commercial/shipment processes
+* Export-oriented RMG workflows
+* Factory coordination
+* Buyer approvals
+* T&A / critical path management
+* Compliance
+* Documents
+* Payments and commercial processes
+
+If web research is available, research **real Bangladesh garments buying-house workflows and industry practices** before finalizing the requirements.
+
+Do not blindly copy generic ERP/project-management software.
+
+The final system must reflect how a real Bangladesh buying house operates.
+
+---
+
+# 2. CORE OBJECTIVE
+
+Design a complete system for managing the lifecycle of garments sourcing/order execution:
+
+**Buyer / Inquiry**
+→ **Product / Style Development**
+→ **Sample Development**
+→ **Costing**
+→ **Quotation**
+→ **Order / PO**
+→ **T&A / Critical Path**
+→ **Production Follow-up**
+→ **Quality**
+→ **Buyer Approval**
+→ **Shipment**
+→ **Commercial / Documentation**
+→ **Payment / Settlement**
+→ **Post-Order Analysis**
+
+However, do NOT assume this exact workflow is complete.
+
+Analyze the entire lifecycle and identify:
+
+* Missing stages
+* Alternative workflows
+* Optional processes
+* Conditional processes
+* Approval gates
+* Exceptions
+* Rework
+* Cancellations
+* Revisions
+* Delays
+* Buyer changes
+* Factory changes
+* Quantity changes
+* Price changes
+* Shipment changes
+* Quality failures
+* Sample rejection
+* Order amendments
+* Partial shipment
+* Short shipment
+* Claims
+* Disputes
+* Document issues
+
+Build the system around real business transactions rather than around screens.
+
+---
+
+# 3. BUSINESS CONTEXT
+
+Assume the organization may work with:
+
+* International buyers
+* Buying agents
+* Buying-house merchandising teams
+* Garment factories
+* Fabric suppliers
+* Trims/accessories suppliers
+* Washing/printing/embroidery vendors
+* Testing laboratories
+* Inspection agencies
+* Freight forwarders
+* Shipping lines
+* Banks
+* Commercial teams
+* Quality teams
+* Management
+
+The system must support coordination between these parties.
+
+Analyze whether each should be represented as a master entity, contact, organization, partner, vendor, or another appropriate domain object.
+
+Do not create unnecessary duplicate entities.
+
+---
+
+# 4. USER ROLES
+
+Identify all realistic roles.
+
+At minimum investigate:
+
+* Super Admin
+* Managing Director / Owner
+* General Manager
+* Merchandiser
+* Senior Merchandiser
+* Junior Merchandiser
+* Marketing / Business Development
+* Sampling Team
+* Production Follow-up Team
+* Quality Team
+* Commercial Team
+* Accounts / Finance
+* Management / Viewer
+* Factory Coordinator
+
+Determine which roles are actually necessary.
+
+For every role define:
+
+* Responsibilities
+* Data access
+* Create permissions
+* Edit permissions
+* Approval permissions
+* Delete/cancel permissions
+* Financial permissions
+* Buyer visibility
+* Factory visibility
+* Report visibility
+* Mobile capabilities
+
+Use proper RBAC.
+
+Do not rely only on frontend hiding.
+
+Authorization must be enforced by the backend.
+
+---
+
+# 5. BUYER MANAGEMENT
+
+Design a complete Buyer Management module.
+
+Analyze requirements for:
+
+* Buyer master
+* Buyer code
+* Buyer group
+* Buyer contacts
+* Departments
+* Email
+* Phone
+* Address
+* Country
+* Currency
+* Payment terms
+* Incoterms
+* Shipment preferences
+* Compliance requirements
+* Quality requirements
+* Buyer-specific approval rules
+* Buyer-specific documents
+* Buyer-specific costing rules
+* Buyer-specific lead times
+* Buyer-specific T&A templates
+* Buyer history
+* Buyer performance
+* Active/inactive status
+
+Support multiple contacts per buyer.
+
+Support communication/activity history.
+
+---
+
+# 6. FACTORY / SUPPLIER MANAGEMENT
+
+Design factory and vendor management.
+
+Support:
+
+* Factory master
+* Factory code
+* Factory group
+* Legal entity
+* Factory address
+* Contact persons
+* Production capabilities
+* Product categories
+* Capacity
+* Certifications
+* Compliance status
+* Audit information
+* Buyer approvals
+* Factory rating/history
+* Bank/payment information where appropriate
+* Documents
+* Active/inactive status
+
+Investigate whether the system should distinguish:
+
+* Garment factory
+* Fabric supplier
+* Trim supplier
+* Washing vendor
+* Printing vendor
+* Embroidery vendor
+* Testing laboratory
+* Inspection agency
+* Freight forwarder
+* Other service providers
+
+Do not assume they all behave identically.
+
+---
+
+# 7. INQUIRY / BUSINESS DEVELOPMENT
+
+Design the complete inquiry lifecycle.
+
+Example:
+
+Buyer inquiry
+→ Requirement capture
+→ Feasibility
+→ Factory sourcing
+→ Costing
+→ Quotation
+→ Buyer negotiation
+→ Follow-up
+→ Won/Lost/Hold
+
+Support:
+
+* Inquiry number
+* Buyer
+* Product/style
+* Season
+* Target quantity
+* Target price
+* Delivery requirement
+* Fabric requirement
+* Special requirements
+* Factory candidates
+* Costing
+* Quotation
+* Follow-ups
+* Communication history
+* Attachments
+* Status
+* Reason for lost business
+
+Identify useful automation.
+
+---
+
+# 8. STYLE / PRODUCT DEVELOPMENT
+
+Design a proper style/product development module.
+
+Potential data:
+
+* Style number
+* Buyer style number
+* Product category
+* Product type
+* Season
+* Collection
+* Gender
+* Description
+* Fabric
+* Composition
+* GSM
+* Color
+* Size range
+* Measurement requirements
+* Artwork
+* Print
+* Embroidery
+* Wash
+* Trims
+* Accessories
+* Technical specifications
+* Tech pack
+* Reference images
+* Buyer documents
+
+Support revisions.
+
+Never destroy historical versions.
+
+Design proper revision/version control.
+
+---
+
+# 9. SAMPLE MANAGEMENT
+
+Design a complete sample workflow.
+
+Investigate:
+
+* Development sample
+* Proto sample
+* Fit sample
+* Size set
+* PP sample
+* TOP sample
+* Shipment sample
+* Other buyer-specific sample types
+
+Support:
+
+* Sample request
+* Sample number
+* Style
+* Buyer
+* Factory
+* Sample type
+* Request date
+* Required date
+* Submission date
+* Approval date
+* Status
+* Comments
+* Rejection reason
+* Revision
+* Photos
+* Documents
+* Courier/shipment tracking where applicable
+
+Model approval properly.
+
+A rejected sample must not simply become "approved" through editing.
+
+Maintain approval history.
+
+---
+
+# 10. COSTING
+
+Costing is a critical domain.
+
+Design a production-grade costing system.
+
+Investigate cost components such as:
+
+* Fabric
+* Knitting
+* Dyeing
+* Finishing
+* Trims
+* Accessories
+* CM
+* Washing
+* Printing
+* Embroidery
+* Testing
+* Inspection
+* Packaging
+* Commercial costs
+* Freight
+* Commission
+* Bank charges
+* Other costs
+* Wastage
+* Overhead
+* Profit/margin
+
+Support:
+
+* Costing version
+* Costing revision
+* Currency
+* Exchange rate
+* Quantity
+* Consumption
+* Wastage
+* Unit cost
+* Total cost
+* Margin
+* Commission
+* Target price
+* Quoted price
+* Buyer price
+* Factory price
+
+Historical costing must remain immutable once used for an order unless a formal revision is created.
+
+Define how profit should be calculated.
+
+Do not allow frontend-only calculations.
+
+All authoritative calculations must exist in the backend.
+
+---
+
+# 11. QUOTATION MANAGEMENT
+
+Design:
+
+Inquiry
+→ Costing
+→ Quotation
+→ Revision
+→ Buyer negotiation
+→ Approval
+→ Order
+
+Support:
+
+* Quotation number
+* Version
+* Buyer
+* Style
+* Quantity
+* Price
+* Currency
+* Incoterm
+* Payment terms
+* Validity
+* Lead time
+* Factory
+* Costing reference
+* Notes
+* Attachments
+* Approval
+* Revision history
+
+Prevent accidental modification of an approved historical quotation.
+
+---
+
+# 12. ORDER MANAGEMENT
+
+Design complete order management.
+
+Support:
+
+* Buyer PO
+* Internal order number
+* Style
+* Buyer
+* Factory
+* Quantity
+* Size breakdown
+* Color breakdown
+* Unit price
+* Currency
+* Order value
+* Delivery date
+* Ex-factory date
+* Shipment date
+* Payment terms
+* Incoterm
+* Destination
+* Partial shipment
+* Order amendment
+* Cancellation
+* Order split
+* Order merge where appropriate
+
+Analyze whether a buyer PO can contain multiple styles and how the data model should represent that.
+
+Support amendments with history.
+
+Never overwrite historical commercial information silently.
+
+---
+
+# 13. T&A / CRITICAL PATH
+
+This is a major feature.
+
+Design a flexible T&A engine.
+
+Example milestones:
+
+* Order confirmation
+* Fabric booking
+* Fabric in-house
+* Lab dip
+* Strike-off
+* Trim approval
+* PP meeting
+* PP sample
+* Cutting
+* Sewing
+* Finishing
+* Inspection
+* Packing
+* Ex-factory
+* Shipment
+
+But do not hardcode this list.
+
+Allow buyer/style/order-specific milestone templates.
+
+Each milestone should support:
+
+* Planned date
+* Revised date
+* Actual date
+* Responsible person
+* Responsible factory
+* Status
+* Dependency
+* Delay days
+* Reason
+* Comments
+* Attachments
+
+Automatic alerts:
+
+* Upcoming deadline
+* Due today
+* Overdue
+* Critical delay
+* Dependency blocked
+
+Calculate progress automatically.
+
+---
+
+# 14. PRODUCTION FOLLOW-UP
+
+Design production monitoring.
+
+Investigate tracking:
+
+* Order quantity
+* Cutting
+* Sewing
+* Finishing
+* Packing
+* Ready quantity
+* Rejection
+* Alteration
+* Production percentage
+* Daily production
+* Cumulative production
+* Planned vs actual
+* Factory capacity
+* Delay
+
+Support daily updates.
+
+Avoid manual duplicate data entry wherever possible.
+
+---
+
+# 15. QUALITY MANAGEMENT
+
+Design quality workflows.
+
+Investigate:
+
+* Inline inspection
+* Midline inspection
+* Final inspection
+* AQL
+* Defect tracking
+* Defect categories
+* Inspection quantity
+* Pass/fail
+* Reinspection
+* Corrective action
+* Buyer complaint
+* Factory response
+
+Support:
+
+* Inspection reports
+* Photos
+* Defect records
+* CAPA
+* Approval
+* History
+
+Determine what should be configurable per buyer.
+
+---
+
+# 16. BUYER APPROVALS
+
+Design a proper approval engine.
+
+Possible approvals:
+
+* Costing
+* Quotation
+* Sample
+* Lab dip
+* Fabric
+* Trim
+* PP sample
+* Production
+* Inspection
+* Shipment
+* Documents
+
+Support:
+
+* Submitted
+* Pending
+* Approved
+* Rejected
+* Returned
+* Resubmitted
+* Withdrawn
+
+Maintain approval rounds and complete history.
+
+---
+
+# 17. SHIPMENT MANAGEMENT
+
+Design shipment tracking.
+
+Support:
+
+* Shipment number
+* Order
+* Buyer
+* Factory
+* Quantity
+* Cartons
+* Gross weight
+* Net weight
+* Volume
+* Port
+* Destination
+* ETD
+* ETA
+* Actual shipment date
+* Partial shipment
+* Freight forwarder
+* Shipping line
+* Container
+* BL/AWB
+* Commercial documents
+* Shipment status
+
+Investigate Bangladesh-specific export/shipping workflows that are relevant to a buying house.
+
+---
+
+# 18. COMMERCIAL & DOCUMENT MANAGEMENT
+
+Analyze required commercial documents.
+
+Potential documents:
+
+* Commercial invoice
+* Packing list
+* Bill of lading
+* Airway bill
+* Certificate of origin
+* Inspection certificate
+* Test reports
+* GSP/other certificates where applicable
+* Buyer-specific documents
+* Export-related documents
+
+Do not invent legal requirements.
+
+Research current requirements when necessary and clearly distinguish:
+
+* Mandatory
+* Buyer-required
+* Factory-required
+* Optional
+
+Documents must have:
+
+* Version
+* Owner
+* Status
+* Upload date
+* Related entity
+* Approval
+* Expiry where applicable
+
+---
+
+# 19. PAYMENT / FINANCIAL TRACKING
+
+Determine what financial functionality belongs inside a buying-house system.
+
+Possible areas:
+
+* Buyer receivables
+* Factory payables
+* Commission
+* Service charges
+* Costing margin
+* Order profitability
+* Payment terms
+* Payment received
+* Payment due
+* Supplier/factory payment
+* Bank charges
+* Expenses
+
+Clearly separate:
+
+**Operational profitability**
+
+from
+
+**Actual accounting/financial accounting**
+
+Do not pretend the system is a complete accounting ERP unless the requirements justify it.
+
+If accounting integration is appropriate, design an integration boundary.
+
+---
+
+# 20. COMMUNICATION & ACTIVITY
+
+A buying house depends heavily on communication.
+
+Design activity tracking for:
+
+* Calls
+* Emails
+* Meetings
+* Buyer comments
+* Factory comments
+* Follow-up notes
+* Tasks
+* Reminders
+* Attachments
+
+Every important business entity should have a chronological activity timeline where appropriate.
+
+---
+
+# 21. TASK & FOLLOW-UP MANAGEMENT
+
+Create a business-focused task system.
+
+Tasks may relate to:
+
+* Buyer
+* Inquiry
+* Style
+* Sample
+* Order
+* T&A milestone
+* Factory
+* Shipment
+* Quality issue
+
+Support:
+
+* Assignment
+* Priority
+* Due date
+* Status
+* Comments
+* Attachments
+* Reminders
+* Escalation
+
+Do not turn the entire application into a generic project-management tool.
+
+Tasks must remain connected to actual buying-house business entities.
+
+---
+
+# 22. DASHBOARDS & MANAGEMENT KPIs
+
+Design dashboards for different roles.
+
+Management dashboard may include:
+
+* Active buyers
+* Active styles
+* Open inquiries
+* Won/lost inquiries
+* Orders
+* Order value
+* Pending samples
+* Pending approvals
+* Production status
+* Shipment status
+* Delayed orders
+* Critical T&A delays
+* Quality issues
+* Buyer performance
+* Factory performance
+* Order profitability
+* Outstanding payments
+
+Merchandiser dashboard:
+
+* My orders
+* My samples
+* Pending approvals
+* T&A deadlines
+* Overdue tasks
+* Buyer follow-ups
+
+Factory follow-up dashboard:
+
+* Production progress
+* Delayed milestones
+* Pending approvals
+* Quality issues
+
+Do not assume every KPI is meaningful.
+
+Define:
+
+* Formula
+* Data source
+* Time period
+* Filters
+* Permissions
+
+---
+
+# 23. NOTIFICATIONS & AUTOMATION
+
+Identify every process that can be automated.
+
+Examples:
+
+* Sample deadline reminder
+* Overdue sample
+* Buyer approval pending
+* T&A milestone due
+* T&A milestone overdue
+* Production behind plan
+* Quality failure
+* Shipment deadline
+* Payment overdue
+* Document expiry
+* Task overdue
+* Critical order delay
+
+Support configurable notification channels where appropriate:
+
+* In-app
+* Push notification
+* Email
+* SMS/WhatsApp only if technically and legally appropriate
+
+Do not spam users.
+
+Define notification priority and escalation.
+
+---
+
+# 24. ANDROID APPLICATION
+
+The primary client is an **Android application**.
+
+Assume Flutter unless analysis shows a strong reason to choose another technology.
+
+Evaluate:
+
+* Flutter
+* Native Android
+* PWA
+
+Make a reasoned architecture recommendation.
+
+The mobile app must prioritize:
+
+* Fast navigation
+* One-hand usage
+* Search
+* Notifications
+* Camera/photo capture
+* Document upload
+* Barcode/QR where useful
+* Offline viewing where useful
+* Network recovery
+* Low-bandwidth environments
+* Responsive forms
+* Clear status indicators
+* Minimal unnecessary typing
+
+Do not simply shrink a desktop web application onto a phone.
+
+Design mobile workflows specifically for Android.
+
+---
+
+# 25. OFFLINE-FIRST ANALYSIS
+
+Do not blindly implement full offline mode.
+
+Analyze which functions genuinely require offline support.
+
+For example:
+
+Potentially offline:
+
+* Viewing cached orders
+* Viewing buyer/style information
+* Viewing T&A
+* Drafting follow-up notes
+* Capturing photos
+* Drafting inspection updates
+
+Potentially online-only:
+
+* Financial transactions
+* Approval finalization
+* Order confirmation
+* Commercial changes
+* Critical master-data changes
+
+Define synchronization rules if offline functionality is required.
+
+Prevent duplicate transactions and conflicting updates.
+
+---
+
+# 26. DATABASE ARCHITECTURE
+
+Design a production PostgreSQL schema.
+
+Do NOT create tables merely because there are screens.
+
+Design around business entities and transactions.
+
+At minimum investigate entities such as:
+
+* organization
+* users
+* roles
+* permissions
+* buyers
+* buyer_contacts
+* factories
+* factory_contacts
+* suppliers
+* inquiries
+* inquiry_items
+* styles
+* style_revisions
+* samples
+* sample_revisions
+* costing
+* costing_items
+* quotations
+* quotation_items
+* orders
+* order_items
+* order_amendments
+* T&A templates
+* T&A milestones
+* production updates
+* quality inspections
+* defects
+* approvals
+* shipments
+* shipment_items
+* documents
+* tasks
+* activities
+* notifications
+* payments
+* expenses
+* audit logs
+
+But treat this as an initial investigation list, NOT a final schema.
+
+Normalize properly.
+
+Use:
+
+* Primary keys
+* Foreign keys
+* Unique constraints
+* Check constraints
+* Proper indexes
+* Decimal precision
+* Timestamps
+* Status enums/reference tables where appropriate
+* Soft delete only where justified
+* Optimistic locking/versioning where required
+
+Explain every major design decision.
+
+---
+
+# 27. DATA INTEGRITY
+
+Identify business invariants.
+
+Examples:
+
+* Approved quotation cannot silently change.
+* Historical costing cannot change without revision.
+* Approved sample cannot be edited as if it were the same version.
+* Order amendments must preserve history.
+* Shipment quantity cannot exceed available order quantity unless explicitly authorized.
+* Production cannot exceed valid order quantity without a defined business rule.
+* Approval history must be immutable.
+* Audit history must be tamper-resistant.
+* Deleted master data must not destroy historical transactions.
+
+Find additional invariants yourself.
+
+---
+
+# 28. AUDITABILITY
+
+Every critical business action should be auditable.
+
+Audit:
+
+* Who
+* What
+* When
+* Entity
+* Entity ID
+* Previous value
+* New value
+* Reason where appropriate
+* IP/device/session information where appropriate
+
+Identify which actions require mandatory audit records.
+
+---
+
+# 29. SECURITY
+
+Design production security.
+
+Consider:
+
+* Authentication
+* JWT/session strategy
+* Refresh tokens
+* RBAC
+* Object-level authorization
+* Password security
+* Rate limiting
+* Device/session management
+* File access security
+* API validation
+* Input sanitization
+* Secure storage
+* Encryption
+* Secrets management
+* Logging
+* Audit trails
+* Backup security
+
+Never rely on the Android client for authorization.
+
+---
+
+# 30. FILES & PHOTOS
+
+Buying houses handle many documents and images.
+
+Design proper attachment architecture.
+
+Support attachments for:
+
+* Styles
+* Tech packs
+* Samples
+* Buyer comments
+* Inspection reports
+* Production photos
+* Shipment documents
+* Commercial documents
+
+Analyze:
+
+* Storage strategy
+* File metadata
+* Versioning
+* Access control
+* Maximum sizes
+* Image compression
+* Thumbnail generation
+* Download permissions
+* Virus/security scanning if appropriate
+
+Do not store large files directly in PostgreSQL unless there is a strong reason.
+
+---
+
+# 31. SEARCH
+
+Search is extremely important.
+
+Design global and module-specific search.
+
+Users should be able to find information using:
+
+* Buyer
+* Style number
+* Buyer style number
+* PO
+* Order number
+* Factory
+* Sample number
+* Shipment number
+* Product/style description
+* Merchandiser
+* Status
+
+Analyze indexing requirements.
+
+---
+
+# 32. REPORTS
+
+Design a complete reporting system.
+
+Examples:
+
+### Buyer reports
+
+* Buyer order summary
+* Buyer performance
+* Buyer business history
+
+### Merchandising reports
+
+* Inquiry pipeline
+* Sample status
+* Approval status
+* T&A status
+* Merchandiser workload
+
+### Order reports
+
+* Order book
+* Order value
+* Order status
+* Order amendments
+* Order profitability
+
+### Production reports
+
+* Planned vs actual
+* Factory performance
+* Delayed orders
+* Production progress
+
+### Quality reports
+
+* Inspection results
+* Defect analysis
+* Factory quality performance
+
+### Shipment reports
+
+* Shipment status
+* Pending shipments
+* Delayed shipments
+
+### Financial reports
+
+* Order profitability
+* Buyer profitability
+* Factory profitability where meaningful
+* Receivables/payables
+* Payment status
+
+Every report must have a clearly defined calculation.
+
+---
+
+# 33. API ARCHITECTURE
+
+Design a clean REST API.
+
+Assume:
+
+**Spring Boot + PostgreSQL**
+
+unless your analysis demonstrates a better architecture.
+
+Use:
+
+* DTOs
+* Validation
+* Authentication
+* Authorization
+* Pagination
+* Filtering
+* Sorting
+* Consistent errors
+* Idempotency where necessary
+* Transaction boundaries
+* API versioning strategy
+* OpenAPI documentation
+
+Do not expose database entities directly.
+
+Keep business rules inside the backend domain/service layer.
+
+---
+
+# 34. FLUTTER ARCHITECTURE
+
+If Flutter is selected, design:
+
+* Feature-based architecture
+* State management
+* Repository layer
+* API clients
+* Authentication
+* Secure token storage
+* Offline cache
+* Sync strategy
+* Error handling
+* Loading states
+* Empty states
+* Form validation
+* File uploads
+* Image handling
+* Push notifications
+* Deep links where useful
+
+Do not create a giant monolithic Flutter codebase.
+
+---
+
+# 35. UI/UX
+
+Design for professional business users.
+
+The UI should be:
+
+* Clean
+* Fast
+* Consistent
+* Mobile-first
+* Information-dense but readable
+* Status-driven
+* Search-driven
+* Minimal-click
+* Suitable for daily operational use
+
+Use consistent:
+
+* Colors
+* Typography
+* Status badges
+* Buttons
+* Forms
+* Tables/lists
+* Cards
+* Dialogs
+* Error states
+* Loading states
+
+Define a design system before building dozens of screens.
+
+---
+
+# 36. MASTER DATA & CONFIGURATION
+
+Identify all configurable data.
+
+Examples:
+
+* Buyers
+* Factories
+* Seasons
+* Product categories
+* Sample types
+* Order statuses
+* T&A templates
+* Milestone types
+* Quality defect types
+* Approval types
+* Currencies
+* Countries
+* Incoterms
+* Payment terms
+* Notification rules
+
+Do not hardcode business rules unnecessarily.
+
+---
+
+# 37. MULTI-COMPANY / MULTI-UNIT
+
+Analyze whether the buying house may eventually have:
+
+* Multiple companies
+* Multiple offices
+* Multiple business units
+* Multiple countries
+
+Do not over-engineer if unnecessary.
+
+However, avoid architectural decisions that make future expansion impossible.
+
+Explain your recommendation.
+
+---
+
+# 38. INTEGRATION WITH MY EXISTING GARMENTS ERP
+
+I already have experience building a garments-industry ERP.
+
+Analyze whether this buying-house application should:
+
+1. Remain completely independent
+2. Share the same backend
+3. Integrate through REST APIs
+4. Become a buying-house module of the existing ERP
+
+Compare the options.
+
+Do not assume integration is automatically correct.
+
+Identify overlapping domains such as:
+
+* Buyers
+* Factories
+* Styles
+* Samples
+* Costing
+* Orders
+* Production
+* Quality
+* Shipment
+
+Explain how duplication can be prevented.
+
+---
+
+# 39. DATA MIGRATION
+
+Assume the organization may currently use:
+
+* Excel
+* Google Sheets
+* Paper records
+* WhatsApp
+* Email
+* Existing software
+
+Design a migration strategy.
+
+Identify:
+
+* Import templates
+* Validation
+* Duplicate detection
+* Data cleaning
+* Mapping
+* Historical data
+* Cutover
+* Rollback
+
+---
+
+# 40. TESTING
+
+Design a serious testing strategy.
+
+Include:
+
+### Unit tests
+
+For:
+
+* Cost calculations
+* Margin
+* Currency conversion
+* T&A calculations
+* Production percentages
+* Order quantities
+* Shipment quantities
+* Approval transitions
+* Permission rules
+
+### Integration tests
+
+For:
+
+* Inquiry → quotation
+* Costing → quotation
+* Order → T&A
+* Order → production
+* Production → shipment
+* Sample → approval
+* Quality → corrective action
+
+### API tests
+
+Cover:
+
+* Authorization
+* Validation
+* Error handling
+* Pagination
+* Filtering
+
+### Flutter tests
+
+Cover:
+
+* Forms
+* Navigation
+* State management
+* Offline behavior
+* Sync
+* Authentication
+
+### E2E tests
+
+Design realistic end-to-end business scenarios.
+
+---
+
+# 41. PERFORMANCE
+
+Define performance requirements.
+
+Analyze:
+
+* API response time
+* Search performance
+* Dashboard performance
+* Large order handling
+* Large attachment handling
+* Pagination
+* Database indexes
+* Mobile network conditions
+* Image optimization
+
+Do not load entire tables into mobile memory.
+
+---
+
+# 42. BACKUP & DISASTER RECOVERY
+
+Design:
+
+* Database backup
+* File backup
+* Backup frequency
+* Retention
+* Restore testing
+* Disaster recovery
+* Export
+* Data recovery
+
+A backup that has never been restored successfully should not be considered sufficient.
+
+---
+
+# 43. DEPLOYMENT
+
+Propose production deployment architecture.
+
+Consider:
+
+* Backend server
+* PostgreSQL
+* Object/file storage
+* HTTPS
+* Domain
+* Reverse proxy
+* Monitoring
+* Logging
+* Database backup
+* CI/CD
+* Android release process
+
+Clearly separate:
+
+Development
+→ Testing
+→ Staging
+→ Production
+
+---
+
+# 44. OBSERVABILITY
+
+Design:
+
+* Application logs
+* Error tracking
+* API monitoring
+* Database monitoring
+* Audit logs
+* Performance metrics
+* Notification delivery tracking
+
+Management should not have to discover system failures manually.
+
+---
+
+# 45. BUSINESS AUTOMATION
+
+Look for every opportunity to eliminate manual work.
+
+Examples:
+
+* Automatic T&A generation
+* Automatic deadline calculation
+* Automatic overdue detection
+* Automatic reminders
+* Automatic order progress calculation
+* Automatic production progress calculation
+* Automatic shipment readiness
+* Automatic buyer follow-up reminders
+* Automatic document expiry alerts
+* Automatic KPI calculation
+* Automatic workload calculation
+* Automatic escalation
+
+For every automation explain:
+
+**Trigger → Logic → Action → Recipient → Audit**
+
+---
+
+# 46. AI FEATURES
+
+AI may be added later.
+
+Identify safe AI opportunities such as:
+
+* Natural-language business queries
+* Order risk explanation
+* Delay analysis
+* Buyer trend analysis
+* Factory performance analysis
+* Follow-up suggestions
+* Document summarization
+* Meeting-note extraction
+* Demand/lead-time analysis
+
+However:
+
+**AI must never become the authoritative source for financial, inventory, order, approval, or compliance records.**
+
+AI can recommend.
+
+The transactional system remains authoritative.
+
+---
+
+# 47. BUSINESS QUESTIONS THE SYSTEM SHOULD ANSWER
+
+Design the system so management can answer questions such as:
+
+* Which orders are at risk?
+* Which T&A milestones are overdue?
+* Which samples are waiting for buyer approval?
+* Which factories are behind schedule?
+* Which buyers generated the most business?
+* Which orders are most profitable?
+* Which orders have poor margins?
+* Which styles have repeated sample rejection?
+* Which factories have repeated quality issues?
+* Which shipments are at risk?
+* Which payments are overdue?
+* What is each merchandiser currently handling?
+* What needs attention today?
+
+Define the exact data and formulas required for each answer.
+
+---
+
+# 48. REQUIREMENT CLASSIFICATION
+
+For every requirement classify it as:
+
+### A — Confirmed requirement
+
+Explicitly required.
+
+### B — Strongly implied requirement
+
+Necessary for the system to work correctly.
+
+### C — Recommended requirement
+
+Strong architectural/business recommendation.
+
+### D — Future enhancement
+
+Useful but not required for V1.
+
+### E — Requires owner confirmation
+
+Cannot safely decide without business input.
+
+This classification is mandatory.
+
+---
+
+# 49. ASSUMPTIONS
+
+Maintain an explicit assumption register.
+
+For every assumption include:
+
+* Assumption
+* Why it was made
+* Impact
+* Confidence
+* What would change if incorrect
+
+Never silently convert assumptions into facts.
+
+---
+
+# 50. OPEN QUESTIONS
+
+Create a prioritized question list.
+
+Separate:
+
+### Blocking questions
+
+Must be answered before implementation.
+
+### Important questions
+
+Should be answered before the affected module.
+
+### Non-blocking questions
+
+Can be decided later.
+
+Do not ask me dozens of questions unnecessarily.
+
+If a reasonable industry-standard assumption can safely be made, make it, document it, and proceed.
+
+---
+
+# 51. ARCHITECTURAL DECISION RECORDS
+
+Create ADRs for major decisions.
+
+At minimum evaluate:
+
+* Flutter vs native Android vs PWA
+* Backend architecture
+* PostgreSQL
+* Authentication
+* RBAC
+* File storage
+* Offline strategy
+* Notification architecture
+* Approval model
+* Versioning
+* T&A architecture
+* Costing architecture
+* Order amendment architecture
+* Multi-company architecture
+* ERP integration architecture
+
+For every ADR:
+
+* Problem
+* Options
+* Decision
+* Reason
+* Consequences
+* Alternatives rejected
+
+---
+
+# 52. RISK REGISTER
+
+Create a project risk register.
+
+Include:
+
+* Business risk
+* Data risk
+* Security risk
+* Financial calculation risk
+* Integration risk
+* Offline/sync risk
+* Adoption risk
+* Performance risk
+* Migration risk
+* Compliance risk
+* Scope risk
+
+For every risk:
+
+* Probability
+* Impact
+* Mitigation
+* Owner
+* Detection method
+
+---
+
+# 53. IMPLEMENTATION ROADMAP
+
+After completing the analysis, create a phased roadmap.
+
+Example structure:
+
+### Phase 0 — Discovery & Architecture
+
+Requirements, workflows, architecture, ADRs.
+
+### Phase 1 — Foundation
+
+Authentication, users, roles, organizations, base infrastructure.
+
+### Phase 2 — Master Data
+
+Buyers, factories, contacts, seasons, configurations.
+
+### Phase 3 — Inquiry & Development
+
+Inquiry, styles, costing, quotation.
+
+### Phase 4 — Sampling
+
+Sample requests, revisions, approvals.
+
+### Phase 5 — Orders
+
+PO/order management and amendments.
+
+### Phase 6 — T&A
+
+Critical path and milestone tracking.
+
+### Phase 7 — Production
+
+Factory follow-up and production updates.
+
+### Phase 8 — Quality
+
+Inspection, defects, CAPA.
+
+### Phase 9 — Shipment & Commercial
+
+Shipment and documents.
+
+### Phase 10 — Financial/Analytics
+
+Profitability, payment tracking, reports.
+
+### Phase 11 — Automation
+
+Notifications, escalation, scheduled jobs.
+
+### Phase 12 — Hardening
+
+Security, performance, backup, monitoring, E2E testing.
+
+You may change this sequence if your analysis shows a better dependency order.
+
+---
+
+# 54. TASK BREAKDOWN
+
+For every phase create implementation tasks.
+
+Each task must contain:
+
+* Task ID
+* Module
+* Objective
+* Dependencies
+* Backend work
+* Database work
+* API work
+* Flutter work
+* Testing
+* Acceptance criteria
+
+Tasks must be small enough for an AI coding agent to implement safely.
+
+Do not create vague tasks like:
+
+> "Build order module."
+
+Instead break it into meaningful implementation units.
+
+---
+
+# 55. DEFINITION OF DONE
+
+A feature is NOT complete merely because the screen works.
+
+A feature is complete only when:
+
+* Database implemented
+* Backend implemented
+* Business rules implemented
+* Validation implemented
+* Authorization implemented
+* Audit requirements implemented
+* API implemented
+* Flutter UI implemented
+* Loading state implemented
+* Empty state implemented
+* Error handling implemented
+* Unit tests implemented
+* Integration tests implemented
+* E2E tests where appropriate
+* Security reviewed
+* Data integrity verified
+* Documentation updated
+
+---
+
+# 56. DEVELOPMENT RULES
+
+When development eventually begins:
+
+1. Do not create demo data disguised as production functionality.
+2. Do not hardcode business transactions.
+3. Do not duplicate business logic between Flutter and backend.
+4. Do not calculate authoritative financial values only on the client.
+5. Do not silently overwrite historical records.
+6. Do not bypass authorization.
+7. Do not create unnecessary duplicate tables/entities.
+8. Do not create screens before understanding the underlying workflow.
+9. Do not mark incomplete functionality as complete.
+10. Do not skip tests for financial or transactional logic.
+11. Do not use fake API responses in production features.
+12. Do not leave placeholder CRUD where real business logic is required.
+13. Do not break existing functionality while implementing a new module.
+14. Reuse existing domain logic whenever integration with the existing ERP is chosen.
+15. Keep documentation synchronized with architectural decisions.
+
+---
+
+# 57. AUTONOMOUS DECISION-MAKING
+
+Act as an experienced enterprise architect.
+
+Do not repeatedly ask:
+
+> "What should I do next?"
+
+When a decision is safe and reversible:
+
+**Recommend → Document → Implement**
+
+Stop and ask for confirmation only when the decision involves:
+
+* Major irreversible architecture changes
+* Significant database migration risk
+* Destructive data operations
+* Materially different financial/business policy
+* Legal/compliance uncertainty
+* A requirement that can fundamentally change the product
+
+Otherwise proceed with the most appropriate professional solution.
+
+---
+
+# 58. REQUIRED FINAL ANALYSIS OUTPUT
+
+Before writing implementation code, produce the following complete documentation:
+
+## Document 1 — Executive Product Definition
+
+Explain exactly what this application is and is not.
+
+## Document 2 — Real Bangladesh Buying-House Workflow
+
+Describe the real-world lifecycle.
+
+## Document 3 — Complete Requirements Specification
+
+Functional + non-functional requirements.
+
+## Document 4 — Gap Analysis
+
+Identify missing requirements and weak areas.
+
+## Document 5 — User Roles & RBAC
+
+Complete permission model.
+
+## Document 6 — Module Architecture
+
+All modules and dependencies.
+
+## Document 7 — Complete Screen Inventory
+
+Every Android screen, grouped by module.
+
+## Document 8 — Database Architecture
+
+Complete schema with relationships and constraints.
+
+## Document 9 — Business Rules
+
+All important calculations, state transitions, validations and invariants.
+
+## Document 10 — Workflow Specification
+
+Detailed end-to-end workflows.
+
+## Document 11 — API Architecture
+
+Endpoints, DTOs, validation, authorization and errors.
+
+## Document 12 — Flutter Architecture
+
+Feature structure, state management, navigation, offline/cache strategy.
+
+## Document 13 — Automation Specification
+
+Triggers, actions, notifications and escalation.
+
+## Document 14 — Reporting & KPI Specification
+
+Every report, metric and formula.
+
+## Document 15 — Security Architecture
+
+Authentication, authorization, audit, data protection.
+
+## Document 16 — Testing Strategy
+
+Unit, integration, API, Flutter and E2E.
+
+## Document 17 — Deployment Architecture
+
+Production infrastructure and release process.
+
+## Document 18 — ADRs
+
+Major architectural decisions.
+
+## Document 19 — Risk Register
+
+Major project and business risks.
+
+## Document 20 — Implementation Roadmap
+
+Phases and dependencies.
+
+## Document 21 — Detailed Development Backlog
+
+Task-by-task implementation plan.
+
+## Document 22 — Definition of Done
+
+Feature and release criteria.
+
+---
+
+# 59. FINAL QUALITY REVIEW
+
+Before presenting the final plan, review the entire proposed system from these perspectives:
+
+### Buying-House Owner
+
+Can management actually run the business using this?
+
+### Merchandiser
+
+Does it reduce daily manual work?
+
+### Factory Coordinator
+
+Can factory progress be tracked effectively?
+
+### Quality Team
+
+Can inspection and corrective action be managed?
+
+### Commercial Team
+
+Can shipment and documents be controlled?
+
+### Accounts
+
+Are financial figures traceable?
+
+### Software Architect
+
+Is the architecture maintainable?
+
+### Database Architect
+
+Is historical data safe?
+
+### Security Architect
+
+Are permissions and sensitive data protected?
+
+### QA Engineer
+
+Can every critical workflow be tested?
+
+### Mobile User
+
+Can a busy employee use it quickly on an Android phone?
+
+---
+
+# 60. MOST IMPORTANT INSTRUCTION
+
+Do not optimize for the number of screens.
+
+Optimize for:
+
+**Correct business workflows + reliable data + automation + auditability + usability + maintainability.**
+
+The system should eliminate unnecessary manual work rather than simply digitize paperwork.
+
+Think:
+
+**"How would a real Bangladesh buying house operate this business every day using this application?"**
+
+not:
+
+**"What CRUD screens can I build?"**
+
+---
+
+# YOUR FIRST TASK
+
+Do NOT write production code yet.
+
+First:
+
+1. Analyze the complete requirement space.
+2. Research Bangladesh garments buying-house practices if web research is available.
+3. Identify missing requirements.
+4. Identify contradictions.
+5. Identify assumptions.
+6. Identify critical business decisions.
+7. Design the domain model.
+8. Design the workflows.
+9. Design the architecture.
+10. Design the database.
+11. Design the Android/Flutter architecture.
+12. Define the modules.
+13. Define all screens.
+14. Define automation.
+15. Define reports/KPIs.
+16. Define security.
+17. Define testing.
+18. Define deployment.
+19. Produce ADRs.
+20. Produce the risk register.
+21. Produce the complete implementation roadmap.
+22. Produce the detailed development backlog.
+
+Then perform a final architecture consistency review.
+
+**Do not start coding until the complete analysis and implementation plan are finished.**
+
+After that, wait for my instruction to begin implementation.

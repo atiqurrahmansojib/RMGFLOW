@@ -1,0 +1,21 @@
+# Document 19 — Risk Register
+
+| ID | Risk | Category | Probability | Impact | Mitigation | Owner | Detection |
+|---|---|---|---|---|---|---|---|
+| R1 | Users keep using WhatsApp/Excel in parallel, system goes unused | Adoption | High | High | Fast mobile UX, "My Day" landing view (Doc 14.9), phased rollout starting with highest-pain module (T&A) | Product Owner | Login/usage analytics, manager feedback |
+| R2 | Costing/margin calculation bug produces wrong quoted price | Financial calculation | Medium | High | Backend-authoritative calc, unit tests (Doc 16.1), immutability once approved | Tech Lead | Automated tests, reconciliation report |
+| R3 | Approved commercial record silently altered via bug or direct DB access | Data | Low | High | DB trigger-level immutability (ADR-14), append-only grants, audit log | DBA/Tech Lead | Periodic integrity check job (Doc 16.6) |
+| R4 | Offline sync creates duplicate production/activity records | Offline/sync | Medium | Medium | Idempotency-Key pattern (Doc 11.3), outbox design (Doc 12.5) | Backend Lead | Duplicate-detection query, E2E test (Doc 16.5 #8) |
+| R5 | Factory assigned to an order without buyer approval, causing compliance issue | Business | Medium | High | Hard-gated check at order creation (Doc 9.4), override requires audit trail | Merchandising Lead | Audit log review, order creation validation test |
+| R6 | ERP integration (if pursued) creates duplicate/conflicting master data | Integration | Medium | High | Single source-of-truth per entity (ADR-11/15), external_ref_id pattern | Tech Lead + Owner | Reconciliation job comparing synced records |
+| R7 | Security breach exposes buyer tech packs/commercial documents | Security | Low | High | Signed URL access, RBAC, virus scan recommendation (Doc 15.4) | Security-responsible engineer | Access log review, pen test before launch |
+| R8 | Database backup never actually tested, fails when needed | Data/DR | Medium | High | Quarterly restore drill (Doc 17.6) | Infra Owner | Restore drill log |
+| R9 | Scope creep toward full accounting ERP mid-project | Scope | Medium | Medium | ADR-12 explicit boundary, development rule discipline (§56) | Product Owner | Backlog review against Doc 3 scope exclusions |
+| R10 | Legal/compliance requirement for a mandatory export document misunderstood/hardcoded incorrectly | Compliance | Medium | High | Document requirements kept data-driven (not hardcoded), owner/compliance-team confirmation required (FR-132, classified E) | Commercial Lead | Legal/compliance review before go-live |
+| R11 | Mobile app unusable on actual factory-floor network conditions | Performance | Medium | Medium | NFR-04 pagination/compression, field testing before rollout | Mobile Lead | Field pilot feedback, performance smoke test (Doc 16.6) |
+| R12 | T&A delay-cascade automation (A16) silently re-plans dates users don't notice | Adoption/Trust | Medium | Medium | Always notify every affected responsible user, full audit trail (Doc 13.1 recommendation) | Product Owner | User feedback, audit log spot-check |
+| R13 | Migration from Excel/paper introduces bad historical data that corrupts reporting baselines | Migration | High | Medium | Validation + duplicate detection in import pipeline, staged cutover (Doc "Data Migration" area) | Data Migration Lead | Import validation report |
+| R14 | Single-server production deployment has no redundancy, outage during peak order/shipment activity | Performance/Availability | Low-Medium | Medium | Managed Postgres with failover, 1-2 app replicas behind proxy (Doc 17.2) | Infra Owner | Uptime monitoring alerts |
+| R15 | Role/permission misconfiguration exposes financial data to unintended roles | Security | Medium | Medium | RBAC test matrix (Doc 16.1), periodic permission audit | Admin/Tech Lead | Role×resource test suite in CI |
+
+**My recommendation**: treat R1 (adoption) as the top practical risk despite not being a technical one — a technically perfect system nobody uses delivers zero value. Prioritize the T&A module and "My Day" dashboard (Doc 14.9) early in the roadmap specifically because they replace the most painful current manual process (chasing deadlines via WhatsApp), which is the fastest path to visible daily value and real adoption.
