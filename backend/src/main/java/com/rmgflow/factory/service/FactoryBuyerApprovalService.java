@@ -7,6 +7,7 @@ import com.rmgflow.factory.dto.FactoryBuyerApprovalRequest;
 import com.rmgflow.factory.dto.FactoryBuyerApprovalResponse;
 import com.rmgflow.factory.entity.Factory;
 import com.rmgflow.factory.entity.FactoryBuyerApproval;
+import com.rmgflow.factory.entity.FactoryBuyerApprovalStatus;
 import com.rmgflow.factory.repository.FactoryBuyerApprovalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,15 @@ public class FactoryBuyerApprovalService {
         auditService.record("FACTORY_BUYER_APPROVAL_SET", "FactoryBuyerApproval", approval.getId(),
                 previousStatus, approval.getStatus(), null);
         return toResponse(approval);
+    }
+
+    /** Document 9.4: the exact hard-gate check OrderService calls before allowing a
+     * factory onto a buyer's order — kept here (not a raw repository query from
+     * OrderService) so the compliance rule has exactly one implementation. */
+    @Transactional(readOnly = true)
+    public boolean isApprovedForBuyer(Long factoryId, Long buyerId) {
+        return factoryBuyerApprovalRepository.existsByFactoryIdAndBuyerIdAndStatus(
+                factoryId, buyerId, FactoryBuyerApprovalStatus.APPROVED);
     }
 
     @Transactional(readOnly = true)
