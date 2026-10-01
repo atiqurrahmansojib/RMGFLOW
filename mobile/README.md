@@ -86,6 +86,15 @@ Gaps within what IS covered:
   mobile screen calls it yet; the first feature that needs it (tech pack
   upload on styles, or Doc 12.7's camera-first attachment picker) should add
   a shared widget here rather than a one-off per screen.
+- Costing, Quotation, and the Approval Engine (Phase 4, Doc 7 #37-46, #67-69)
+  — backend is built and tested (margin calc, immutability, field-level
+  margin masking, the shared approval inbox/decide flow), but no mobile
+  screens yet. Skipped deliberately this round: these need a genuinely
+  multi-step UI (itemized cost entry, submit-for-approval, a decision
+  screen that's correct for every target type) that deserves its own
+  focused pass rather than a rushed version alongside three other phases.
+  When built, reuse the generic `/api/v1/approvals` endpoints — don't
+  create a per-module approve/reject UI.
 
 ## Known risk
 
