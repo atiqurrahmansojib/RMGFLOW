@@ -6,7 +6,6 @@ import com.rmgflow.factory.dto.FactoryCapabilityResponse;
 import com.rmgflow.factory.entity.Factory;
 import com.rmgflow.factory.entity.FactoryCapability;
 import com.rmgflow.factory.repository.FactoryCapabilityRepository;
-import com.rmgflow.factory.repository.FactoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,15 +18,16 @@ import java.util.List;
 public class FactoryCapabilityService {
 
     private final FactoryCapabilityRepository factoryCapabilityRepository;
-    private final FactoryRepository factoryRepository;
+    private final FactoryService factoryService;
 
     @Transactional
     public FactoryCapabilityResponse create(Long factoryId, FactoryCapabilityRequest request) {
+        // Security review fix: tenant-scoped lookup before anything else.
+        Factory factory = factoryService.findInCurrentOrganization(factoryId);
+
         if (factoryCapabilityRepository.existsByFactoryIdAndProductCategoryIgnoreCase(factoryId, request.productCategory())) {
             throw new ApiException(HttpStatus.CONFLICT, "This factory already lists that product category");
         }
-        Factory factory = factoryRepository.findById(factoryId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
 
         FactoryCapability capability = new FactoryCapability();
         capability.setFactory(factory);
@@ -38,6 +38,7 @@ public class FactoryCapabilityService {
 
     @Transactional(readOnly = true)
     public List<FactoryCapabilityResponse> list(Long factoryId) {
+        factoryService.findInCurrentOrganization(factoryId);
         return factoryCapabilityRepository.findByFactoryId(factoryId).stream().map(this::toResponse).toList();
     }
 

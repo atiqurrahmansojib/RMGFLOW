@@ -45,8 +45,7 @@ public class FactoryService {
 
     @Transactional
     public FactoryResponse update(Long factoryId, FactoryRequest request) {
-        Factory factory = factoryRepository.findById(factoryId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
+        Factory factory = findInCurrentOrganization(factoryId);
 
         if (request.version() == null || request.version() != factory.getVersion()) {
             throw new ApiException(HttpStatus.CONFLICT, "Factory was modified by another user; refresh and retry");
@@ -62,26 +61,31 @@ public class FactoryService {
 
     @Transactional(readOnly = true)
     public FactoryResponse get(Long factoryId) {
-        return factoryRepository.findById(factoryId)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
+        return toResponse(findInCurrentOrganization(factoryId));
     }
 
     @Transactional(readOnly = true)
     public Page<FactoryResponse> list(PartnerType partnerType, Pageable pageable) {
+        Long organizationId = currentUser().organizationId();
         Page<Factory> page = partnerType != null
-                ? factoryRepository.findByActiveTrueAndPartnerType(partnerType, pageable)
-                : factoryRepository.findByActiveTrue(pageable);
+                ? factoryRepository.findByOrganizationIdAndActiveTrueAndPartnerType(organizationId, partnerType, pageable)
+                : factoryRepository.findByOrganizationIdAndActiveTrue(organizationId, pageable);
         return page.map(this::toResponse);
     }
 
     @Transactional
     public void deactivate(Long factoryId) {
-        Factory factory = factoryRepository.findById(factoryId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
+        Factory factory = findInCurrentOrganization(factoryId);
         factory.setActive(false);
         factoryRepository.save(factory);
         auditService.record("FACTORY_DEACTIVATE", "Factory", factory.getId(), null, null, null);
+    }
+
+    /** Security review fix: a factory id from another organization must 404 — same
+     * treatment as BuyerService.findInCurrentOrganization. */
+    Factory findInCurrentOrganization(Long factoryId) {
+        return factoryRepository.findByIdAndOrganizationId(factoryId, currentUser().organizationId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
     }
 
     private void applyRequest(Factory factory, FactoryRequest request) {

@@ -1,14 +1,11 @@
 package com.rmgflow.factory.service;
 
-import com.rmgflow.common.ApiException;
 import com.rmgflow.factory.dto.FactoryContactRequest;
 import com.rmgflow.factory.dto.FactoryContactResponse;
 import com.rmgflow.factory.entity.Factory;
 import com.rmgflow.factory.entity.FactoryContact;
 import com.rmgflow.factory.repository.FactoryContactRepository;
-import com.rmgflow.factory.repository.FactoryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,12 +16,12 @@ import java.util.List;
 public class FactoryContactService {
 
     private final FactoryContactRepository factoryContactRepository;
-    private final FactoryRepository factoryRepository;
+    private final FactoryService factoryService;
 
     @Transactional
     public FactoryContactResponse create(Long factoryId, FactoryContactRequest request) {
-        Factory factory = factoryRepository.findById(factoryId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
+        // Security review fix: tenant-scoped lookup, same as FactoryService's own endpoints.
+        Factory factory = factoryService.findInCurrentOrganization(factoryId);
 
         boolean makePrimary = request.primary() || !factoryContactRepository.existsByFactoryIdAndPrimaryTrue(factoryId);
         if (request.primary()) {
@@ -51,6 +48,8 @@ public class FactoryContactService {
 
     @Transactional(readOnly = true)
     public List<FactoryContactResponse> list(Long factoryId) {
+        // Security review fix: 404s a cross-org factoryId instead of leaking its contacts.
+        factoryService.findInCurrentOrganization(factoryId);
         return factoryContactRepository.findByFactoryId(factoryId).stream().map(this::toResponse).toList();
     }
 

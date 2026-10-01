@@ -5,12 +5,9 @@ import com.rmgflow.buyer.dto.BuyerContactResponse;
 import com.rmgflow.buyer.entity.Buyer;
 import com.rmgflow.buyer.entity.BuyerContact;
 import com.rmgflow.buyer.repository.BuyerContactRepository;
-import com.rmgflow.buyer.repository.BuyerRepository;
-import com.rmgflow.common.ApiException;
 import com.rmgflow.identity.service.AssignmentService;
 import com.rmgflow.security.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,13 +21,14 @@ import java.util.List;
 public class BuyerContactService {
 
     private final BuyerContactRepository buyerContactRepository;
-    private final BuyerRepository buyerRepository;
+    private final BuyerService buyerService;
     private final AssignmentService assignmentService;
 
     @Transactional
     public BuyerContactResponse create(Long buyerId, BuyerContactRequest request) {
-        Buyer buyer = buyerRepository.findById(buyerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        // Security review fix: tenant-scoped lookup (404s a cross-org buyer id) before
+        // any further check, same as BuyerService's own endpoints.
+        Buyer buyer = buyerService.findInCurrentOrganization(buyerId);
         requireEditAccess(buyer);
 
         if (request.primary()) {
@@ -54,6 +52,9 @@ public class BuyerContactService {
 
     @Transactional(readOnly = true)
     public List<BuyerContactResponse> list(Long buyerId) {
+        // Security review fix: resolve the buyer tenant-scoped first so a cross-org
+        // buyerId can't be used to read another organization's contact list.
+        buyerService.findInCurrentOrganization(buyerId);
         return buyerContactRepository.findByBuyerId(buyerId).stream().map(this::toResponse).toList();
     }
 

@@ -74,8 +74,7 @@ public class BuyerService {
 
     @Transactional
     public BuyerResponse update(Long buyerId, BuyerRequest request) {
-        Buyer buyer = buyerRepository.findById(buyerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        Buyer buyer = findInCurrentOrganization(buyerId);
 
         requireEditAccess(buyer);
 
@@ -96,27 +95,35 @@ public class BuyerService {
 
     @Transactional(readOnly = true)
     public BuyerResponse get(Long buyerId) {
-        return buyerRepository.findById(buyerId)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        return toResponse(findInCurrentOrganization(buyerId));
     }
 
     @Transactional(readOnly = true)
     public Page<BuyerResponse> list(String search, Pageable pageable) {
+        Long organizationId = currentUser().organizationId();
         Page<Buyer> page = StringUtils.hasText(search)
-                ? buyerRepository.findByActiveTrueAndNameContainingIgnoreCase(search, pageable)
-                : buyerRepository.findByActiveTrue(pageable);
+                ? buyerRepository.findByOrganizationIdAndActiveTrueAndNameContainingIgnoreCase(organizationId, search, pageable)
+                : buyerRepository.findByOrganizationIdAndActiveTrue(organizationId, pageable);
         return page.map(this::toResponse);
     }
 
     @Transactional
     public void deactivate(Long buyerId) {
-        Buyer buyer = buyerRepository.findById(buyerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        Buyer buyer = findInCurrentOrganization(buyerId);
         requireEditAccess(buyer);
         buyer.setActive(false);
         buyerRepository.save(buyer);
         auditService.record("BUYER_DEACTIVATE", "Buyer", buyer.getId(), null, null, null);
+    }
+
+    /** Security review fix: a buyer id from another organization must 404, not leak
+     * existence/data or allow edits — same treatment as a nonexistent id (Doc 15.2).
+     * Public so other services needing to resolve a buyer within the caller's tenant
+     * (BuyerContactService, FactoryBuyerApprovalService, …) reuse this instead of
+     * re-deriving the same tenant check against BuyerRepository directly. */
+    public Buyer findInCurrentOrganization(Long buyerId) {
+        return buyerRepository.findByIdAndOrganizationId(buyerId, currentUser().organizationId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
     }
 
     private void requireEditAccess(Buyer buyer) {

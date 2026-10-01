@@ -1,16 +1,14 @@
 package com.rmgflow.factory.service;
 
 import com.rmgflow.audit.service.AuditService;
-import com.rmgflow.buyer.repository.BuyerRepository;
-import com.rmgflow.common.ApiException;
+import com.rmgflow.buyer.entity.Buyer;
+import com.rmgflow.buyer.service.BuyerService;
 import com.rmgflow.factory.dto.FactoryBuyerApprovalRequest;
 import com.rmgflow.factory.dto.FactoryBuyerApprovalResponse;
 import com.rmgflow.factory.entity.Factory;
 import com.rmgflow.factory.entity.FactoryBuyerApproval;
 import com.rmgflow.factory.repository.FactoryBuyerApprovalRepository;
-import com.rmgflow.factory.repository.FactoryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +24,17 @@ import java.util.List;
 public class FactoryBuyerApprovalService {
 
     private final FactoryBuyerApprovalRepository factoryBuyerApprovalRepository;
-    private final FactoryRepository factoryRepository;
-    private final BuyerRepository buyerRepository;
+    private final FactoryService factoryService;
+    private final BuyerService buyerService;
     private final AuditService auditService;
 
     @Transactional
     public FactoryBuyerApprovalResponse upsert(Long factoryId, FactoryBuyerApprovalRequest request) {
-        Factory factory = factoryRepository.findById(factoryId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
-        var buyer = buyerRepository.findById(request.buyerId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
+        // Security review fix: both the factory AND the buyer must resolve within the
+        // caller's organization — a cross-org id on either side must 404, not let the
+        // caller create an approval record linking to data outside their tenant.
+        Factory factory = factoryService.findInCurrentOrganization(factoryId);
+        Buyer buyer = buyerService.findInCurrentOrganization(request.buyerId());
 
         FactoryBuyerApproval approval = factoryBuyerApprovalRepository
                 .findByFactoryIdAndBuyerId(factoryId, request.buyerId())
@@ -55,6 +54,7 @@ public class FactoryBuyerApprovalService {
 
     @Transactional(readOnly = true)
     public List<FactoryBuyerApprovalResponse> list(Long factoryId) {
+        factoryService.findInCurrentOrganization(factoryId);
         return factoryBuyerApprovalRepository.findByFactoryId(factoryId).stream().map(this::toResponse).toList();
     }
 

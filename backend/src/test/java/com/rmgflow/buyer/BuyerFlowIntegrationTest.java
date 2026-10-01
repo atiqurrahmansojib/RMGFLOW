@@ -47,7 +47,7 @@ class BuyerFlowIntegrationTest {
     private PasswordEncoder passwordEncoder;
 
     private String tokenFor(String role) {
-        return TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, role);
+        return TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, role).accessToken();
     }
 
     @Test
@@ -77,12 +77,16 @@ class BuyerFlowIntegrationTest {
 
     @Test
     void juniorMerchandiser_cannotEditABuyerTheyAreNotAssignedTo() {
-        String seniorToken = tokenFor("SENIOR_MERCHANDISER");
+        // Both users must be in the SAME organization here — this test is specifically
+        // about the Doc 5.3 assignment-based denial (403), not tenant isolation (404),
+        // which is covered separately in BuyerTenantIsolationIntegrationTest.
+        var seniorSession = TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, "SENIOR_MERCHANDISER");
         BuyerRequest createRequest = new BuyerRequest("BYR-" + UUID.randomUUID(), "Other Buyer Co", null, null, null, null, null, null);
         BuyerResponse buyer = restTemplate.exchange(
-                "/api/v1/buyers", HttpMethod.POST, new HttpEntity<>(createRequest, TestUsers.bearer(seniorToken)), BuyerResponse.class).getBody();
+                "/api/v1/buyers", HttpMethod.POST, new HttpEntity<>(createRequest, TestUsers.bearer(seniorSession.accessToken())), BuyerResponse.class).getBody();
 
-        String juniorToken = tokenFor("JUNIOR_MERCHANDISER");
+        String juniorToken = TestUsers.createAndLoginInOrganization(restTemplate, userRepository, roleRepository,
+                organizationRepository, passwordEncoder, "JUNIOR_MERCHANDISER", seniorSession.organizationId());
         BuyerRequest updateRequest = new BuyerRequest(buyer.code(), "Hijacked Name", null, null, null, null, null, buyer.version());
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/v1/buyers/" + buyer.id(), HttpMethod.PUT, new HttpEntity<>(updateRequest, TestUsers.bearer(juniorToken)), String.class);

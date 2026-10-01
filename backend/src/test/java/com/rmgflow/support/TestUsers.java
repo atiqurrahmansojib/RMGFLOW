@@ -21,18 +21,32 @@ public class TestUsers {
 
     public static final String PASSWORD = "Str0ngPassword!";
 
-    public static String createAndLogin(TestRestTemplate restTemplate, UserRepository userRepository,
-                                         RoleRepository roleRepository, OrganizationRepository organizationRepository,
-                                         PasswordEncoder passwordEncoder, String roleName) {
+    /** Creates the user in a brand-new organization and returns both the token and
+     * that organization's id. Use the plain token for cross-org IDOR tests (each
+     * call is its own tenant); pass the returned organizationId to
+     * {@link #createAndLoginInOrganization} when a test needs a second user in the
+     * SAME tenant (e.g. testing role/assignment-based authorization). */
+    public static TestSession createAndLogin(TestRestTemplate restTemplate, UserRepository userRepository,
+                                              RoleRepository roleRepository, OrganizationRepository organizationRepository,
+                                              PasswordEncoder passwordEncoder, String roleName) {
         Organization org = new Organization();
         org.setName("Test Org " + UUID.randomUUID());
         org = organizationRepository.save(org);
+        String token = createAndLoginInOrganization(restTemplate, userRepository, roleRepository, organizationRepository,
+                passwordEncoder, roleName, org.getId());
+        return new TestSession(token, org.getId());
+    }
 
+    /** Creates the user inside an EXISTING organization — use this when a test needs
+     * two different roles/users who must be in the SAME tenant. */
+    public static String createAndLoginInOrganization(TestRestTemplate restTemplate, UserRepository userRepository,
+                                                        RoleRepository roleRepository, OrganizationRepository organizationRepository,
+                                                        PasswordEncoder passwordEncoder, String roleName, Long organizationId) {
         Role role = roleRepository.findByName(roleName).orElseThrow();
 
         String email = roleName.toLowerCase() + "+" + UUID.randomUUID() + "@rmgflow.local";
         User user = new User();
-        user.setOrganization(org);
+        user.setOrganization(organizationRepository.getReferenceById(organizationId));
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(PASSWORD));
         user.setFullName("Test " + roleName);

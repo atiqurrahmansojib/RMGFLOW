@@ -47,7 +47,7 @@ class BuyerContactIntegrationTest {
 
     @Test
     void firstContactIsAutoPrimary_andSettingANewPrimaryUnsetsTheOld() {
-        String token = TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, "SENIOR_MERCHANDISER");
+        String token = TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, "SENIOR_MERCHANDISER").accessToken();
 
         BuyerRequest buyerRequest = new BuyerRequest("BYR-" + UUID.randomUUID(), "Contact Test Buyer", null, null, null, null, null, null);
         BuyerResponse buyer = restTemplate.exchange("/api/v1/buyers", HttpMethod.POST,

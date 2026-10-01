@@ -51,13 +51,10 @@ class FactoryBuyerApprovalIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private String tokenFor(String role) {
-        return TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, role);
-    }
-
     @Test
     void generalManager_canApproveFactoryForBuyer_andJuniorCannot() {
-        String gmToken = tokenFor("GENERAL_MANAGER");
+        var gmSession = TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, "GENERAL_MANAGER");
+        String gmToken = gmSession.accessToken();
 
         FactoryRequest factoryRequest = new FactoryRequest("FAC-" + UUID.randomUUID(), "Dhaka Garments Ltd",
                 PartnerType.GARMENT_FACTORY, "Dhaka Garments Ltd.", "Dhaka, Bangladesh", "BD", 50000, null);
@@ -78,7 +75,10 @@ class FactoryBuyerApprovalIntegrationTest {
         assertThat(approveResponse.getBody().status()).isEqualTo(FactoryBuyerApprovalStatus.APPROVED);
 
         // A Junior Merchandiser has FACTORY_VIEW but not FACTORY_APPROVE_FOR_BUYER (Doc 5.2).
-        String juniorToken = tokenFor("JUNIOR_MERCHANDISER");
+        // Must be in the SAME org as the GM — this test is about role denial (403),
+        // not tenant isolation (404, covered in FactoryTenantIsolationIntegrationTest).
+        String juniorToken = TestUsers.createAndLoginInOrganization(restTemplate, userRepository, roleRepository,
+                organizationRepository, passwordEncoder, "JUNIOR_MERCHANDISER", gmSession.organizationId());
         ResponseEntity<String> deniedResponse = restTemplate.exchange(
                 "/api/v1/factories/" + factory.id() + "/buyer-approvals", HttpMethod.PUT,
                 new HttpEntity<>(approvalRequest, TestUsers.bearer(juniorToken)), String.class);
