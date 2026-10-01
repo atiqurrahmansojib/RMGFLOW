@@ -28,6 +28,7 @@
 | 22 | Definition of Done | [22-definition-of-done.md](22-definition-of-done.md) |
 
 Supplementary:
+- [23-recommendations-summary.md](23-recommendations-summary.md) — all "my recommendation" calls, consolidated
 - [assumptions-register.md](assumptions-register.md)
 - [open-questions.md](open-questions.md)
 - [final-quality-review.md](final-quality-review.md)
