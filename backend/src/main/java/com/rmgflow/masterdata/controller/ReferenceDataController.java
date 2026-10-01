@@ -30,6 +30,7 @@ public class ReferenceDataController {
     private final DocumentTypeRepository documentTypeRepository;
     private final DefectTypeRepository defectTypeRepository;
     private final MilestoneTypeRepository milestoneTypeRepository;
+    private final SeasonRepository seasonRepository;
 
     @GetMapping("/currencies")
     public List<Currency> currencies() {
@@ -92,5 +93,17 @@ public class ReferenceDataController {
     public MilestoneType createMilestoneType(@RequestBody MilestoneType milestoneType) {
         milestoneType.setId(null);
         return milestoneTypeRepository.save(milestoneType);
+    }
+
+    @GetMapping("/seasons")
+    public List<Season> seasons() {
+        return seasonRepository.findAll();
+    }
+
+    @PostMapping("/seasons")
+    @PreAuthorize("hasAuthority('MASTER_DATA_MANAGE')")
+    public Season createSeason(@RequestBody Season season) {
+        season.setId(null);
+        return seasonRepository.save(season);
     }
 }

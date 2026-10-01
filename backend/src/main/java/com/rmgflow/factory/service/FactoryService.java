@@ -82,8 +82,10 @@ public class FactoryService {
     }
 
     /** Security review fix: a factory id from another organization must 404 — same
-     * treatment as BuyerService.findInCurrentOrganization. */
-    Factory findInCurrentOrganization(Long factoryId) {
+     * treatment as BuyerService.findInCurrentOrganization. Public so other modules
+     * (InquiryFactoryCandidateService, etc.) can resolve a factory within the
+     * caller's tenant without re-deriving the same check. */
+    public Factory findInCurrentOrganization(Long factoryId) {
         return factoryRepository.findByIdAndOrganizationId(factoryId, currentUser().organizationId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
     }

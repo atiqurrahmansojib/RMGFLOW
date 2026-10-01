@@ -31,6 +31,11 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**", "/actuator/health").permitAll()
+                        // Document 15.4: the download link carries its own short-lived signed
+                        // token (verified in AttachmentService/AttachmentDownloadTokenService) —
+                        // that token, not a Bearer access token, IS the credential for this one
+                        // endpoint, matching how a real S3 pre-signed URL works.
+                        .requestMatchers("/api/v1/attachments/download").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

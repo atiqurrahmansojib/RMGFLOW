@@ -1,6 +1,10 @@
 spring:
   application:
     name: rmgflow
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
   jpa:
     hibernate:
       ddl-auto: validate
@@ -34,6 +38,14 @@ rmgflow:
     secret: ${JWT_SECRET:change-this-secret-in-every-environment-minimum-256-bits-long}
     access-token-ttl-minutes: ${JWT_ACCESS_TTL_MIN:15}
     refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+  storage:
+    # Document 17.2/ADR-06: production should point this at an S3-compatible bucket
+    # mount or swap StorageService's implementation for a real S3 client — this local
+    # filesystem implementation is a deliberately simple placeholder so Phase 3 has a
+    # working attachment module without standing up MinIO/S3 in every dev environment.
+    root-directory: ${STORAGE_ROOT:./data/attachments}
+    max-file-size-bytes: ${STORAGE_MAX_FILE_SIZE_BYTES:26214400}
+    download-token-ttl-minutes: ${STORAGE_DOWNLOAD_TTL_MIN:5}
 
 management:
   endpoints:
