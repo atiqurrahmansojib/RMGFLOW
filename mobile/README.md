@@ -55,20 +55,37 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   (Doc 7 #20-22)
 - Both follow the same `domain/data/application/presentation` structure as
   `features/auth/` (Doc 12.2) — a new feature's shape should look identical
-- `HomeScreen` is now a simple module launcher card list pointing at these two
+**Phase 3 — Inquiry & Product Development:**
+- `features/inquiries/`: list (filterable by status), create/edit form, and a
+  status-change dialog offering the full `InquiryStatus` enum (Doc 7 #24-27) —
+  the backend's state machine (Doc 10.1) is the real enforcement; an invalid
+  transition picked here just surfaces as a 400 via the Failure/SnackBar path
+- `features/styles/`: list (search by style no.) and a create-only form
+  (Doc 7 #28-30) — see "What's deliberately NOT here yet" for the revision gap
+- `HomeScreen` now links all four modules built so far
 
 ## What's deliberately NOT here yet
 
-Everything past Phase 2 per Document 7's screen inventory (inquiries, styles,
-sampling, costing, quotations, orders, T&A, …) — those land in their
-respective roadmap phases (Document 20), each following the same
-`presentation/application/domain/data` structure already established.
+Everything past Phase 3 per Document 7's screen inventory (sampling, costing,
+quotations, orders, T&A, …) — those land in their respective roadmap phases
+(Document 20), each following the same `presentation/application/domain/data`
+structure already established.
 
-Also not yet built within what IS covered: buyer contacts/requirements and
-factory contacts/capabilities/certifications/buyer-approvals sub-resources —
-the backend supports all of them (Phase 2 P2-T3/T5), but the mobile UI only
-covers the parent Buyer/Factory CRUD so far. Add detail-screen tabs for these
-before calling Phase 2's mobile side complete.
+Gaps within what IS covered:
+- Buyer contacts/requirements and factory contacts/capabilities/
+  certifications/buyer-approvals sub-resources — the backend supports all of
+  them (Phase 2 P2-T3/T5), but the mobile UI only covers the parent Buyer/
+  Factory CRUD so far.
+- Inquiry factory candidates (Doc 7's "Factory Candidates" tab) — backend
+  endpoints exist, no mobile screen yet.
+- Style revisions (Doc 7 #31 "Revision Compare View") and style editing — the
+  mobile Style form is create-only; the backend's revision endpoints
+  (append-only, Doc FR-31) have no UI yet at all.
+- Attachments (Doc 7's generic upload component, #100) — the backend module
+  is built and tested (upload/signed-download/tenant-isolation), but no
+  mobile screen calls it yet; the first feature that needs it (tech pack
+  upload on styles, or Doc 12.7's camera-first attachment picker) should add
+  a shared widget here rather than a one-off per screen.
 
 ## Known risk
 

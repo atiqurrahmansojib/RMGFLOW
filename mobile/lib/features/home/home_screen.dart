@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/application/auth_controller.dart';
 import '../buyers/presentation/buyer_list_screen.dart';
 import '../factories/presentation/factory_list_screen.dart';
+import '../inquiries/presentation/inquiry_list_screen.dart';
+import '../styles/presentation/style_list_screen.dart';
 
 /// Document 14.9 recommendation: this becomes the "What needs attention
 /// today" landing view once dashboards (Phase 12) exist. For now (through
-/// Phase 2) it's a simple module launcher — proves the authenticated shell
+/// Phase 3) it's a simple module launcher — proves the authenticated shell
 /// works and gives access to what's actually built so far.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -50,10 +52,32 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.mail_outline),
+              title: const Text('Inquiries'),
+              subtitle: const Text('BD pipeline, factory sourcing'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const InquiryListScreen()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.checkroom_outlined),
+              title: const Text('Styles'),
+              subtitle: const Text('Style master and specs'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StyleListScreen()),
+              ),
+            ),
+          ),
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'More modules (inquiries, styles, orders, T&A, …) land in later phases '
+              'More modules (sampling, costing, orders, T&A, …) land in later phases '
               'per docs/20-implementation-roadmap.md.',
               textAlign: TextAlign.center,
             ),
