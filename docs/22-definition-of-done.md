@@ -6,7 +6,7 @@ A feature/task (Document 21 granularity) is **not** complete until every applica
 - [ ] Database schema implemented with constraints matching Document 8 (PK/FK/unique/check, correct types, indexes)
 - [ ] Backend service implemented with business rules from Document 9 applied (not just CRUD)
 - [ ] Validation implemented (Bean Validation + business-rule validation, Doc 11.3)
-- [ ] Authorization implemented and tested (role permission + object-level scope, Doc 5/11.3) — not deferred "for later"
+- [ ] Authorization implemented and tested (role permission + object-level scope + **tenant/organization scope**, Doc 5/11.3/18 ADR-10) — every `findById`-style lookup goes through an organization-scoped query, not a bare id lookup; not deferred "for later"
 - [ ] Audit requirements implemented where the action is in the mandatory list (Doc 15.8)
 - [ ] API implemented per Document 11 standards (pagination, filtering, error shape, idempotency where applicable, OpenAPI annotated)
 - [ ] Flutter UI implemented per the relevant screen(s) in Document 7
