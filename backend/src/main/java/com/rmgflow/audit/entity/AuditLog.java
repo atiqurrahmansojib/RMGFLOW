@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
@@ -14,6 +13,13 @@ import java.time.Instant;
  * Document 8.9/15.7/15.8: append-only audit trail. No service method in this codebase
  * ever updates or deletes a row here — the DB grant (V3 migration) backs that up at
  * the database level too, so a bug here cannot silently tamper with history.
+ *
+ * previous_value/new_value are stored as pre-serialized JSON text (String), not a
+ * JsonNode-typed field — Hibernate 7's JSON type mapper expects a classic
+ * com.fasterxml.jackson.databind.JsonNode by default in this Spring Boot 4 /
+ * Jackson-3 environment and fails on the new tools.jackson.databind.JsonNode type
+ * (see backend/README.md "Notable stack facts"). AuditService does the
+ * object-to-JSON-string conversion itself.
  */
 @Entity
 @Table(name = "audit_logs")
@@ -40,11 +46,11 @@ public class AuditLog {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "previous_value")
-    private JsonNode previousValue;
+    private String previousValue;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "new_value")
-    private JsonNode newValue;
+    private String newValue;
 
     private String reason;
 

@@ -8,7 +8,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,8 +38,8 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
-    private JsonNode toJson(Object value) {
-        return value == null ? null : objectMapper.valueToTree(value);
+    private String toJson(Object value) {
+        return value == null ? null : objectMapper.writeValueAsString(value);
     }
 
     private Long currentUserId() {
