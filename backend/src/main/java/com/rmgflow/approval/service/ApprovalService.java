@@ -56,6 +56,7 @@ public class ApprovalService {
     static {
         DECISION_PERMISSION_BY_TARGET_TYPE.put(ApprovalTargetType.COSTING, "COSTING_APPROVE");
         DECISION_PERMISSION_BY_TARGET_TYPE.put(ApprovalTargetType.QUOTATION, "QUOTATION_APPROVE");
+        DECISION_PERMISSION_BY_TARGET_TYPE.put(ApprovalTargetType.SAMPLE_REVISION, "SAMPLE_APPROVE");
     }
 
     private final ApprovalRepository approvalRepository;
