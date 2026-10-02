@@ -4,14 +4,39 @@ Spring Boot + PostgreSQL backend for the RMGFlow Bangladesh garments buying-hous
 management system. See [`/docs`](../docs/00-INDEX.md) at the repo root for the full
 business/architecture analysis this implementation follows.
 
-## Phase 1 (Foundation) — implemented
+## Implementation status — all 13 phases complete
 
-- Organizations, users, roles, permissions, role-permission mapping (Doc 8.1)
-- JWT authentication with rotating refresh tokens (Doc 15.1, ADR-04)
-- Object-level assignment scaffolding (buyer/factory scope, Doc 5.3)
-- Append-only audit log with DB-level grant restriction (Doc 15.7)
-- Argon2id password hashing (Doc 15.1 recommendation)
-- RBAC enforced server-side via `@PreAuthorize` (Doc 15.2)
+Every phase in `docs/20-implementation-roadmap.md` is implemented and covered by
+integration tests (48 tests, 0 failures as of the last full run):
+
+1. **Foundation** — organizations, users, roles, permissions, JWT auth with rotating
+   refresh tokens, Argon2id hashing, append-only audit log, server-side RBAC.
+2. **Buyers & Factories** — buyer/contact/requirement management, factory capability
+   and certification tracking, factory-buyer approval gate.
+3. **Inquiry & Styles** — inquiry state machine, style + append-only style revisions.
+4. **Approval Engine & Attachments** — shared polymorphic approval engine (ADR-08),
+   generic attachment module with signed download tokens.
+5. **Costing & Quotation** — server-computed margins, field masking, quotation
+   requires an APPROVED costing.
+6. **Sampling** — sample types/samples/revisions, second Approval Engine consumer.
+7. **Orders & T&A** — order confirmation, T&A milestone instantiation from templates,
+   delay-cascade automation (A16) with audit trail per shifted milestone.
+8. **Production Follow-up** — cumulative production updates, packing hard-block.
+9. **Quality** — inspections, defects, CAPA records, quality gate for shipment.
+10. **Shipment & Commercial Documents** — shipment with quality/quantity/partial-auth
+    gates, versioned commercial documents (reuses the attachment module).
+11. **Financial Tracking & Claims** — receivables/payables with derived status,
+    estimate-vs-realized order margin, claims isolated by construction from
+    order/shipment mutation.
+12. **Communication, Tasks, Notifications, Dashboards** — entity-attached activities
+    and tasks, in-app notifications, the first real scheduled-job automation
+    (`TaMilestoneOverdueScanService`, A2), and the cross-module "My Day" dashboard.
+13. **Hardening** — repo-wide tenant-scoping security review (no un-scoped
+    `findById` or missing-authorization gaps found beyond the two intentional
+    `findInCurrentOrganization()` helper implementations in the quality module),
+    full regression run (48/48 passing), deployment/backup posture reviewed in
+    `docs/17-deployment-architecture.md` (no live infrastructure exists to
+    provision in this environment).
 
 ## Running locally
 
