@@ -39,4 +39,10 @@ public class TaMilestoneController {
                                                  @Valid @RequestBody RecordActualDateRequest request) {
         return taMilestoneService.recordActualDate(milestoneId, request);
     }
+
+    @PostMapping("/{milestoneId}/responsible-user")
+    @PreAuthorize("hasAuthority('TA_TEMPLATE_MANAGE')")
+    public TaMilestoneResponse assignResponsibleUser(@PathVariable Long orderId, @PathVariable Long milestoneId, @RequestParam Long userId) {
+        return taMilestoneService.assignResponsibleUser(milestoneId, userId);
+    }
 }

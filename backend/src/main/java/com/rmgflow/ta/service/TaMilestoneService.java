@@ -2,6 +2,7 @@ package com.rmgflow.ta.service;
 
 import com.rmgflow.audit.service.AuditService;
 import com.rmgflow.common.ApiException;
+import com.rmgflow.identity.repository.UserRepository;
 import com.rmgflow.order.entity.Order;
 import com.rmgflow.order.service.OrderService;
 import com.rmgflow.security.AuthenticatedUser;
@@ -46,6 +47,7 @@ public class TaMilestoneService {
     private final TaTemplateMilestoneRepository taTemplateMilestoneRepository;
     private final TaTemplateService taTemplateService;
     private final OrderService orderService;
+    private final UserRepository userRepository;
     private final AuditService auditService;
 
     /** Document A15: called by OrderService on order confirmation. */
@@ -141,6 +143,27 @@ public class TaMilestoneService {
 
             cascadeDelay(dependent, deltaDays, depth + 1);
         }
+    }
+
+    /** Document 7 (#56-58): assigns who's responsible for a milestone — needed
+     * before the overdue-notification scan (Doc 13 A2) has anyone to notify. */
+    @Transactional
+    public TaMilestoneResponse assignResponsibleUser(Long milestoneId, Long userId) {
+        TaMilestone milestone = findInCurrentOrganization(milestoneId);
+        milestone.setResponsibleUser(userId != null ? userRepository.getReferenceById(userId) : null);
+        milestone = taMilestoneRepository.save(milestone);
+        return toResponse(milestone);
+    }
+
+    /** Document 14.9: feeds the "My Day" dashboard — overdue milestones assigned to the current user. */
+    @Transactional(readOnly = true)
+    public List<TaMilestoneResponse> myOverdueMilestones() {
+        AuthenticatedUser user = (AuthenticatedUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        LocalDate today = LocalDate.now();
+        return taMilestoneRepository.findByResponsibleUser_IdAndActualDateIsNull(user.id()).stream()
+                .filter(m -> m.getEffectiveDate().isBefore(today))
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
