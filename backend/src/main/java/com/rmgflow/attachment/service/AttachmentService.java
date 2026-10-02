@@ -94,7 +94,9 @@ public class AttachmentService {
         return new AttachmentDownload(stream, attachment.getFileName(), attachment.getContentType());
     }
 
-    private Attachment findInCurrentOrganization(Long attachmentId) {
+    /** Public so other modules (e.g. CommercialDocumentService) can verify a
+     * referenced attachment id is within the caller's tenant before linking to it. */
+    public Attachment findInCurrentOrganization(Long attachmentId) {
         return attachmentRepository.findByIdAndOrganizationId(attachmentId, currentUser().organizationId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Attachment not found"));
     }
