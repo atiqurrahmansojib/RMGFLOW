@@ -153,11 +153,24 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   Reached from `OrderDetailScreen` (order docs) and `ShipmentDetailScreen`
   (shipment docs).
 
+**Phase 10 — Financial Tracking & Claims:**
+- `features/financial/`: one order's financial screen (Doc 7 #70-72) —
+  margin (Doc 9.10: estimate vs realized, `isEstimate` flagging which basis
+  the server used; the percentage itself is never computed client-side),
+  receivables and payables with their server-derived status strings, and a
+  record-payment dialog on each (Doc 9.12 — atomic write + balance update
+  server-side)
+- `features/claim/`: claims raised against an order, buyer or internal (Doc
+  7 #73-74), tracked through to resolution. Doc 6.3's isolation — ClaimService
+  never mutates Order/Shipment state — means this feature is purely tracking,
+  with no cross-feature side effects to worry about
+- Both reached from `OrderDetailScreen`
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 9 per Document 7's screen inventory (financial,
-claims, tasks, dashboard, …) — those land in their respective roadmap
-phases (Document 20), each following the same
+Everything past Phase 10 per Document 7's screen inventory (tasks,
+notifications, dashboard, activity feed, …) — those land in their
+respective roadmap phases (Document 20), each following the same
 `presentation/application/domain/data` structure already established.
 
 Gaps within what IS covered:

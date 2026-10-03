@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../claim/presentation/claim_list_screen.dart';
 import '../../document/domain/commercial_document.dart';
 import '../../document/presentation/commercial_document_list_screen.dart';
+import '../../financial/presentation/order_financial_screen.dart';
 import '../../production/presentation/production_progress_screen.dart';
 import '../../quality/presentation/inspection_list_screen.dart';
 import '../../shipment/presentation/shipment_list_screen.dart';
@@ -151,6 +153,22 @@ class OrderDetailScreen extends ConsumerWidget {
             label: const Text('Amendments'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => OrderAmendmentsScreen(orderId: order.id)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            label: const Text('Financials'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => OrderFinancialScreen(orderId: order.id)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.gavel_outlined),
+            label: const Text('Claims'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ClaimListScreen(orderId: order.id)),
             ),
           ),
           const SizedBox(height: 8),
