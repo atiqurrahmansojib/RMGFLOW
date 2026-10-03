@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../document/domain/commercial_document.dart';
+import '../../document/presentation/commercial_document_list_screen.dart';
 import '../../production/presentation/production_progress_screen.dart';
 import '../../quality/presentation/inspection_list_screen.dart';
+import '../../shipment/presentation/shipment_list_screen.dart';
 import '../../ta/presentation/ta_milestone_list_screen.dart';
 import '../application/order_action_controller.dart';
 import '../domain/order.dart';
@@ -122,6 +125,24 @@ class OrderDetailScreen extends ConsumerWidget {
             label: const Text('Inspections & Quality'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => InspectionListScreen(orderId: order.id)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.local_shipping_outlined),
+            label: const Text('Shipments'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ShipmentListScreen(orderId: order.id)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.description_outlined),
+            label: const Text('Order Documents'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CommercialDocumentListScreen(entityType: DocumentEntityType.order, entityId: order.id),
+              ),
             ),
           ),
           const SizedBox(height: 8),

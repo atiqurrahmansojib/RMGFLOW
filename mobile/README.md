@@ -137,11 +137,27 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   the shipment module; this feature only records inspection/defect/CAPA data.
   Reached from `OrderDetailScreen`.
 
+**Phase 9 — Shipment & Commercial Documents:**
+- `features/shipment/`: one order's shipments including partials (Doc 7
+  #65), a create form with a quality-gate override toggle (Doc 9.7/9.8 — the
+  shipment-never-exceeds-order-quantity gate, Doc 9.11 #5, has NO override
+  and is purely server-enforced), and a detail screen with a status-change
+  action strip (BOOKED/IN_TRANSIT/DELIVERED/DELAYED)
+- `features/document/`: the **generic** versioned Commercial Document UI
+  (Doc 8.9/10.4) — one list+upload+approve screen reused for every
+  `DocumentEntityType` (order/shipment/factory/style) via a typed
+  `(entityType, entityId)` key, the same reuse pattern as the Phase 4
+  approval feature. Upload takes a raw attachment ID (no file-picker/upload
+  screen exists yet — see the Attachments gap below) since a
+  `CommercialDocument` always wraps an already-uploaded `Attachment`.
+  Reached from `OrderDetailScreen` (order docs) and `ShipmentDetailScreen`
+  (shipment docs).
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 8 per Document 7's screen inventory (shipment,
-financial, claims, tasks, dashboard, …) — those land in their respective
-roadmap phases (Document 20), each following the same
+Everything past Phase 9 per Document 7's screen inventory (financial,
+claims, tasks, dashboard, …) — those land in their respective roadmap
+phases (Document 20), each following the same
 `presentation/application/domain/data` structure already established.
 
 Gaps within what IS covered:
