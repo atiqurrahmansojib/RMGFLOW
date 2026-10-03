@@ -8,6 +8,7 @@ import '../costing/presentation/costing_list_screen.dart';
 import '../factories/presentation/factory_list_screen.dart';
 import '../inquiries/presentation/inquiry_list_screen.dart';
 import '../quotation/presentation/quotation_list_screen.dart';
+import '../sample/presentation/sample_list_screen.dart';
 import '../styles/presentation/style_list_screen.dart';
 
 /// Document 14.9 recommendation: this becomes the "What needs attention
@@ -101,6 +102,17 @@ class HomeScreen extends ConsumerWidget {
           ),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.science_outlined),
+              title: const Text('Samples'),
+              subtitle: const Text('Sample requests, revisions, approval sync'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SampleListScreen()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.task_alt_outlined),
               title: const Text('Pending Approvals'),
               subtitle: const Text('Costing, quotation, sample revision approval inbox'),
@@ -113,7 +125,7 @@ class HomeScreen extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'More modules (sampling, orders, T&A, production, quality, shipment, '
+              'More modules (orders, T&A, production, quality, shipment, '
               'financial, claims, tasks, dashboard …) land in later phases per '
               'docs/20-implementation-roadmap.md.',
               textAlign: TextAlign.center,

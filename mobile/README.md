@@ -85,10 +85,22 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   Document approval gates, they reuse this same feature instead of building
   their own approve/reject screen.
 
+**Phase 5 — Sampling:**
+- `features/sample/`: list (filterable by the derived `SampleStatus` rollup,
+  Doc 8.4), create-only request form (no edit endpoint exists server-side —
+  Doc 9.3's invariant is "a rejected revision is never edited, only
+  superseded"), and a detail screen with the append-only revision history,
+  an "add revision" dialog (the backend auto-submits each new revision to
+  the shared Approval Engine — no separate submit step here), a "sync status
+  from latest approval" action (Doc 10.5, rolls a decided round's outcome
+  onto the sample), and a link into the generic approval-history screen for
+  the latest revision
+- `HomeScreen` now links all six modules built through Phase 5
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 4 per Document 7's screen inventory (sampling, orders,
-T&A, production, quality, shipment, financial, claims, tasks, dashboard, …) —
+Everything past Phase 5 per Document 7's screen inventory (orders, T&A,
+production, quality, shipment, financial, claims, tasks, dashboard, …) —
 those land in their respective roadmap phases (Document 20), each following
 the same `presentation/application/domain/data` structure already established.
 
