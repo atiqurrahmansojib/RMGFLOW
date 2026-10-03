@@ -127,9 +127,19 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   server-side and surfaces as a plain validation Failure here. Reached from
   `OrderDetailScreen` (order-scoped, no standalone top-level list)
 
+**Phase 8 — Quality:**
+- `features/quality/`: inspection history per order (inline/midline/final,
+  Doc 7 #59-60) with a create form; defects logged per inspection (#60-61)
+  via an add-defect dialog; CAPA records per defect (#63-64/Doc 9.9) with the
+  full create → factory-response → close lifecycle. The shipment quality
+  gate (Doc 9.7/9.8 — a FAIL/REINSPECT final inspection blocks shipment
+  unless overridden by a permitted user) is enforced entirely server-side in
+  the shipment module; this feature only records inspection/defect/CAPA data.
+  Reached from `OrderDetailScreen`.
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 7 per Document 7's screen inventory (quality, shipment,
+Everything past Phase 8 per Document 7's screen inventory (shipment,
 financial, claims, tasks, dashboard, …) — those land in their respective
 roadmap phases (Document 20), each following the same
 `presentation/application/domain/data` structure already established.
