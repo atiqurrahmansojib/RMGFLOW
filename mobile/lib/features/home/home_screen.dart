@@ -5,17 +5,19 @@ import '../approval/presentation/approval_inbox_screen.dart';
 import '../auth/application/auth_controller.dart';
 import '../buyers/presentation/buyer_list_screen.dart';
 import '../costing/presentation/costing_list_screen.dart';
+import '../dashboard/presentation/my_day_screen.dart';
 import '../factories/presentation/factory_list_screen.dart';
 import '../inquiries/presentation/inquiry_list_screen.dart';
+import '../notification/presentation/notification_list_screen.dart';
 import '../order/presentation/order_list_screen.dart';
 import '../quotation/presentation/quotation_list_screen.dart';
 import '../sample/presentation/sample_list_screen.dart';
 import '../styles/presentation/style_list_screen.dart';
+import '../task/presentation/task_list_screen.dart';
 
-/// Document 14.9 recommendation: this becomes the "What needs attention
-/// today" landing view once dashboards (Phase 12) exist. For now (through
-/// Phase 3) it's a simple module launcher — proves the authenticated shell
-/// works and gives access to what's actually built so far.
+/// Document 7's module launcher. Doc 14.9's "My Day" dashboard (reached via
+/// the app-bar icon here) is the recommended post-login landing view, but
+/// this module grid stays as the way to reach every feature directly.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -25,6 +27,20 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('RMGFlow'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.today_outlined),
+            tooltip: 'My Day',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MyDayScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotificationListScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
@@ -134,13 +150,15 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'More modules (production, quality, shipment, financial, claims, '
-              'tasks, dashboard …) land in later phases per '
-              'docs/20-implementation-roadmap.md.',
-              textAlign: TextAlign.center,
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.task_outlined),
+              title: const Text('My Tasks'),
+              subtitle: const Text('Open tasks assigned to you'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TaskListScreen()),
+              ),
             ),
           ),
         ],

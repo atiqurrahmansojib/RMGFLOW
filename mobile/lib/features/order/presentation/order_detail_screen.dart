@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../activity/presentation/activity_list_screen.dart';
 import '../../claim/presentation/claim_list_screen.dart';
 import '../../document/domain/commercial_document.dart';
 import '../../document/presentation/commercial_document_list_screen.dart';
@@ -9,6 +10,7 @@ import '../../production/presentation/production_progress_screen.dart';
 import '../../quality/presentation/inspection_list_screen.dart';
 import '../../shipment/presentation/shipment_list_screen.dart';
 import '../../ta/presentation/ta_milestone_list_screen.dart';
+import '../../task/presentation/task_list_screen.dart';
 import '../application/order_action_controller.dart';
 import '../domain/order.dart';
 import 'order_amendments_screen.dart';
@@ -169,6 +171,22 @@ class OrderDetailScreen extends ConsumerWidget {
             label: const Text('Claims'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ClaimListScreen(orderId: order.id)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.task_outlined),
+            label: const Text('Tasks'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => TaskListScreen(target: (entityType: 'Order', entityId: order.id))),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.history_edu_outlined),
+            label: const Text('Activity Log'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ActivityListScreen(entityType: 'Order', entityId: order.id)),
             ),
           ),
           const SizedBox(height: 8),

@@ -166,14 +166,37 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   with no cross-feature side effects to worry about
 - Both reached from `OrderDetailScreen`
 
+**Phase 11 — Communication, Tasks, Notifications, Dashboards:**
+- `features/activity/`: a generic communication/activity log (call/email/
+  meeting/note, Doc 7 #89-91) reused across every module via a plain
+  `(entityType, entityId)` key, the same reuse pattern as Phase 4's approval
+  feature and Phase 9's document feature. Wired into `OrderDetailScreen`;
+  any future module can reuse the same screen by passing its own entity key.
+- `features/task/`: tasks are ALWAYS entity-attached, never free-floating
+  (Doc 21) — one screen serves both "My Open Tasks" (`target == null`,
+  reached from `HomeScreen`) and "tasks for this entity" (reached from
+  `OrderDetailScreen`), backed by the same two repository methods the
+  backend exposes.
+- `features/notification/`: the in-app notification feed (Doc 7 #88) — the
+  dispatch sink for automation jobs like the T&A overdue scan (Doc 13 A2).
+  Tapping an unread notification marks it read.
+- `features/dashboard/`: the "My Day" screen (Doc 14.9) — the recommended
+  post-login landing view, aggregating overdue T&A milestones, the
+  organization's pending approvals, and the user's overdue tasks from one
+  endpoint. Reached via an app-bar icon on `HomeScreen` rather than replacing
+  it as the literal landing route, so the full module grid stays one tap away.
+
+This completes mobile coverage for all 11 implementable phases of
+`docs/20-implementation-roadmap.md` (Phase 12/"Hardening" has no UI
+surface of its own). Every module built in Phases 1-11 now has a
+corresponding screen.
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 10 per Document 7's screen inventory (tasks,
-notifications, dashboard, activity feed, …) — those land in their
-respective roadmap phases (Document 20), each following the same
-`presentation/application/domain/data` structure already established.
+Every module built in Phases 1-11 now has a corresponding screen (Phase
+12/"Hardening" has no UI surface of its own). Remaining gaps are all
+polish items within what IS covered, not missing modules:
 
-Gaps within what IS covered:
 - Buyer contacts/requirements and factory contacts/capabilities/
   certifications/buyer-approvals sub-resources — the backend supports all of
   them (Phase 2 P2-T3/T5), but the mobile UI only covers the parent Buyer/
@@ -187,18 +210,24 @@ Gaps within what IS covered:
   is built and tested (upload/signed-download/tenant-isolation), but no
   mobile screen calls it yet; the first feature that needs it (tech pack
   upload on styles, or Doc 12.7's camera-first attachment picker) should add
-  a shared widget here rather than a one-off per screen.
-- Costing/Quotation foreign keys (styleId, inquiryId, buyerId, costingId) are
-  entered as raw numeric ID fields, same as every other cross-module
-  reference in this app so far (Doc 12.2's `presentation/application/domain/
-  data` shape doesn't yet include a shared picker widget) — a lookup/search
-  picker is a UI-polish item for a later pass, not a correctness gap.
+  a shared widget here rather than a one-off per screen. The Commercial
+  Document upload dialog (Phase 9) takes a raw attachment ID for the same reason.
+- Cross-module foreign keys (styleId, buyerId, factoryId, costingId, …) are
+  entered as raw numeric ID fields throughout, same as every cross-module
+  reference in this app (Doc 12.2's `presentation/application/domain/data`
+  shape doesn't yet include a shared picker widget) — a lookup/search picker
+  is a UI-polish item for a later pass, not a correctness gap.
+- The Activity and Task features (Phase 11) are wired into `OrderDetailScreen`
+  only so far; the backend supports attaching either to any entity type, so
+  wiring the same screens into Buyer/Factory/Shipment/etc. detail screens is
+  a follow-up, not a backend gap.
 
 ## Known risk
 
 The offline-tiered strategy (Doc 12.5: cached / draftable-and-synced /
-online-only) and the outbox sync mechanism are **not implemented yet** — this
-shell only covers the online-only auth flow. Build that out when the first
-feature needing offline support (likely Production Follow-up, Phase 8) lands,
-per Doc 12.5's generic `(entity_type, payload_json, idempotency_key, status)`
-outbox recommendation.
+online-only) and the outbox sync mechanism are **not implemented** — every
+feature through Phase 11, including Production Follow-up (daily updates
+entered on a factory floor, the case Doc 12.5 specifically calls out), is
+online-only. Build the outbox out per Doc 12.5's generic
+`(entity_type, payload_json, idempotency_key, status)` recommendation before
+relying on this app somewhere connectivity isn't guaranteed.
