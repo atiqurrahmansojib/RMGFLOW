@@ -7,6 +7,7 @@ import '../buyers/presentation/buyer_list_screen.dart';
 import '../costing/presentation/costing_list_screen.dart';
 import '../factories/presentation/factory_list_screen.dart';
 import '../inquiries/presentation/inquiry_list_screen.dart';
+import '../order/presentation/order_list_screen.dart';
 import '../quotation/presentation/quotation_list_screen.dart';
 import '../sample/presentation/sample_list_screen.dart';
 import '../styles/presentation/style_list_screen.dart';
@@ -113,6 +114,17 @@ class HomeScreen extends ConsumerWidget {
           ),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Orders'),
+              subtitle: const Text('Confirmed orders, amendments, T&A calendar'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OrderListScreen()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.task_alt_outlined),
               title: const Text('Pending Approvals'),
               subtitle: const Text('Costing, quotation, sample revision approval inbox'),
@@ -125,8 +137,8 @@ class HomeScreen extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'More modules (orders, T&A, production, quality, shipment, '
-              'financial, claims, tasks, dashboard …) land in later phases per '
+              'More modules (production, quality, shipment, financial, claims, '
+              'tasks, dashboard …) land in later phases per '
               'docs/20-implementation-roadmap.md.',
               textAlign: TextAlign.center,
             ),

@@ -97,12 +97,32 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   the latest revision
 - `HomeScreen` now links all six modules built through Phase 5
 
+**Phase 6 — Orders & T&A:**
+- `features/order/`: list (filterable by buyer/status), itemized create form
+  (style/factory/color/size lines, Doc 7 #48-49) with an
+  `overrideFactoryApproval` toggle for the Doc 9.4 gate (server-side is the
+  real authorization check — a 400 for anyone lacking
+  `ORDER_OVERRIDE_FACTORY_APPROVAL` surfaces the same as any other
+  validation error), a detail screen with cancel/amendments/T&A-calendar
+  entry points, and `OrderAmendmentsScreen` (request + approve/reject, Doc
+  9.6 — every confirmed-order field change is a recorded, decided amendment,
+  never a silent edit)
+- `features/ta/`: the order's T&A calendar (Doc 7 #54-58) — status chips show
+  the server-DERIVED status (Doc 9.5: DONE/BLOCKED/CRITICAL_DELAY/OVERDUE/
+  DUE_TODAY/UPCOMING/PENDING, never recomputed on-device), tapping an
+  un-completed milestone records its actual date (prompting for a delay
+  reason when it's late — the backend's delay-cascade automation, Doc A16,
+  then pushes every dependent milestone's revised date and this screen just
+  reflects what comes back on refresh), and a manual "generate from
+  template" action for templates added/corrected after order confirmation
+- `HomeScreen` now links all seven modules built through Phase 6
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 5 per Document 7's screen inventory (orders, T&A,
-production, quality, shipment, financial, claims, tasks, dashboard, …) —
-those land in their respective roadmap phases (Document 20), each following
-the same `presentation/application/domain/data` structure already established.
+Everything past Phase 6 per Document 7's screen inventory (production,
+quality, shipment, financial, claims, tasks, dashboard, …) — those land in
+their respective roadmap phases (Document 20), each following the same
+`presentation/application/domain/data` structure already established.
 
 Gaps within what IS covered:
 - Buyer contacts/requirements and factory contacts/capabilities/
