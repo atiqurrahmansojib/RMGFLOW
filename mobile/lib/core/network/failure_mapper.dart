@@ -33,3 +33,12 @@ Failure mapDioErrorToFailure(DioException error) {
       return UnknownFailure(detail ?? 'Unexpected error.');
   }
 }
+
+/// Document 12.7: same mapping, but for a `FutureProvider`/`AsyncValue` error
+/// (an `Object`, not guaranteed to be a `DioException`) — detail screens built
+/// on `ref.watch(someProvider).when(error: ...)` use this instead of
+/// duplicating the `is DioException` check everywhere.
+Failure mapErrorToFailure(Object error) {
+  if (error is DioException) return mapDioErrorToFailure(error);
+  return UnknownFailure(error.toString());
+}

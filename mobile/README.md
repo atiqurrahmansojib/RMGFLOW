@@ -64,12 +64,33 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   (Doc 7 #28-30) — see "What's deliberately NOT here yet" for the revision gap
 - `HomeScreen` now links all four modules built so far
 
+**Phase 4 — Costing, Quotation, Approval Engine:**
+- `features/costing/`: list (filterable by style), itemized cost-entry form
+  (one row per `CostingComponentType`, Doc 7 #38) shared between create/
+  edit-draft/revise, and a detail screen showing the server-computed
+  `totalCost`/`marginPercent` (Doc 9.1 — never recomputed client-side) plus
+  the legal next action for the costing's current status (edit draft, submit
+  for approval, or create a new version once APPROVED/SUPERSEDED)
+- `features/quotation/`: list (filterable by buyer), create/revise form, and
+  a detail screen with a status-change action strip (Doc 7 #42) — the backend
+  enforces which status transitions are legal and that a quotation requires
+  an APPROVED costing; invalid attempts surface as a 400 via Failure/SnackBar
+- `features/approval/`: the **generic** Approval Engine UI (Doc ADR-08) — one
+  Pending Approvals Inbox (#67) across every `ApprovalTargetType`, one
+  Approval Detail/Action screen (#68, approve/reject/return with comments/
+  rejection reason), and one history screen, all driven by the shared
+  `/api/v1/approvals` endpoints. Costing and Quotation detail screens link
+  into the history screen rather than duplicating approval UI; as later
+  phases add Sample Revision/Lab Dip/Trim/PP Sample/Inspection/Shipment/
+  Document approval gates, they reuse this same feature instead of building
+  their own approve/reject screen.
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 3 per Document 7's screen inventory (sampling, costing,
-quotations, orders, T&A, …) — those land in their respective roadmap phases
-(Document 20), each following the same `presentation/application/domain/data`
-structure already established.
+Everything past Phase 4 per Document 7's screen inventory (sampling, orders,
+T&A, production, quality, shipment, financial, claims, tasks, dashboard, …) —
+those land in their respective roadmap phases (Document 20), each following
+the same `presentation/application/domain/data` structure already established.
 
 Gaps within what IS covered:
 - Buyer contacts/requirements and factory contacts/capabilities/
@@ -86,15 +107,11 @@ Gaps within what IS covered:
   mobile screen calls it yet; the first feature that needs it (tech pack
   upload on styles, or Doc 12.7's camera-first attachment picker) should add
   a shared widget here rather than a one-off per screen.
-- Costing, Quotation, and the Approval Engine (Phase 4, Doc 7 #37-46, #67-69)
-  — backend is built and tested (margin calc, immutability, field-level
-  margin masking, the shared approval inbox/decide flow), but no mobile
-  screens yet. Skipped deliberately this round: these need a genuinely
-  multi-step UI (itemized cost entry, submit-for-approval, a decision
-  screen that's correct for every target type) that deserves its own
-  focused pass rather than a rushed version alongside three other phases.
-  When built, reuse the generic `/api/v1/approvals` endpoints — don't
-  create a per-module approve/reject UI.
+- Costing/Quotation foreign keys (styleId, inquiryId, buyerId, costingId) are
+  entered as raw numeric ID fields, same as every other cross-module
+  reference in this app so far (Doc 12.2's `presentation/application/domain/
+  data` shape doesn't yet include a shared picker widget) — a lookup/search
+  picker is a UI-polish item for a later pass, not a correctness gap.
 
 ## Known risk
 

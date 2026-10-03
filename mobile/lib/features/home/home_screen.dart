@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../approval/presentation/approval_inbox_screen.dart';
 import '../auth/application/auth_controller.dart';
 import '../buyers/presentation/buyer_list_screen.dart';
+import '../costing/presentation/costing_list_screen.dart';
 import '../factories/presentation/factory_list_screen.dart';
 import '../inquiries/presentation/inquiry_list_screen.dart';
+import '../quotation/presentation/quotation_list_screen.dart';
 import '../styles/presentation/style_list_screen.dart';
 
 /// Document 14.9 recommendation: this becomes the "What needs attention
@@ -74,11 +77,45 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.calculate_outlined),
+              title: const Text('Costing'),
+              subtitle: const Text('Itemized cost sheets, margin'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CostingListScreen()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.request_quote_outlined),
+              title: const Text('Quotations'),
+              subtitle: const Text('Buyer quotations from approved costings'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QuotationListScreen()),
+              ),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.task_alt_outlined),
+              title: const Text('Pending Approvals'),
+              subtitle: const Text('Costing, quotation, sample revision approval inbox'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ApprovalInboxScreen()),
+              ),
+            ),
+          ),
           const Padding(
             padding: EdgeInsets.all(16),
             child: Text(
-              'More modules (sampling, costing, orders, T&A, …) land in later phases '
-              'per docs/20-implementation-roadmap.md.',
+              'More modules (sampling, orders, T&A, production, quality, shipment, '
+              'financial, claims, tasks, dashboard …) land in later phases per '
+              'docs/20-implementation-roadmap.md.',
               textAlign: TextAlign.center,
             ),
           ),
