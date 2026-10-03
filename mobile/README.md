@@ -117,11 +117,21 @@ use the backend's real LAN/deployed URL for a physical device or non-emulator se
   template" action for templates added/corrected after order confirmation
 - `HomeScreen` now links all seven modules built through Phase 6
 
+**Phase 7 — Production Follow-up:**
+- `features/production/`: a per-order progress screen (Doc 7 #52-53) showing
+  the server's cumulative cutting/sewing/finishing/packing/rejection/
+  alteration rollup and packing-progress percentage (Doc 9.6/14.4 — always
+  computed from daily updates, never summed client-side) plus the full daily
+  history, and a daily-update entry form; the packing-never-exceeds-order-
+  quantity hard block (Doc 9.11 #5, no override exists) is enforced
+  server-side and surfaces as a plain validation Failure here. Reached from
+  `OrderDetailScreen` (order-scoped, no standalone top-level list)
+
 ## What's deliberately NOT here yet
 
-Everything past Phase 6 per Document 7's screen inventory (production,
-quality, shipment, financial, claims, tasks, dashboard, …) — those land in
-their respective roadmap phases (Document 20), each following the same
+Everything past Phase 7 per Document 7's screen inventory (quality, shipment,
+financial, claims, tasks, dashboard, …) — those land in their respective
+roadmap phases (Document 20), each following the same
 `presentation/application/domain/data` structure already established.
 
 Gaps within what IS covered:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../production/presentation/production_progress_screen.dart';
 import '../../ta/presentation/ta_milestone_list_screen.dart';
 import '../application/order_action_controller.dart';
 import '../domain/order.dart';
@@ -106,6 +107,14 @@ class OrderDetailScreen extends ConsumerWidget {
                         ),
                       ),
             ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.trending_up_outlined),
+            label: const Text('Production Progress'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ProductionProgressScreen(orderId: order.id)),
+            ),
+          ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.edit_note_outlined),
