@@ -11,13 +11,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ApprovalRepository extends JpaRepository<Approval, Long> {
-    List<Approval> findByTargetTypeAndTargetIdOrderByRoundNoDesc(ApprovalTargetType targetType, Long targetId);
+    List<Approval> findByOrganizationIdAndTargetTypeAndTargetIdOrderByRoundNoDesc(Long organizationId, ApprovalTargetType targetType, Long targetId);
 
     Optional<Approval> findTopByTargetTypeAndTargetIdOrderByRoundNoDesc(ApprovalTargetType targetType, Long targetId);
+
+    Optional<Approval> findTopByOrganizationIdAndTargetTypeAndTargetIdOrderByRoundNoDesc(Long organizationId, ApprovalTargetType targetType, Long targetId);
 
     Optional<Approval> findByIdAndOrganizationId(Long id, Long organizationId);
 
     Page<Approval> findByOrganizationIdAndStatus(Long organizationId, ApprovalStatus status, Pageable pageable);
 
-    Page<Approval> findByOrganizationIdAndTargetType(Long organizationId, ApprovalTargetType targetType, Pageable pageable);
+    Page<Approval> findByOrganizationIdAndTargetTypeInAndStatus(Long organizationId, java.util.Collection<ApprovalTargetType> targetTypes, ApprovalStatus status, Pageable pageable);
+
+    Page<Approval> findByOrganizationIdAndTargetTypeAndStatus(Long organizationId, ApprovalTargetType targetType, ApprovalStatus status, Pageable pageable);
 }

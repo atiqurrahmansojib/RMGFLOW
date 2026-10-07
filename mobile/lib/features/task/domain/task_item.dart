@@ -32,6 +32,7 @@ class TaskItem {
     required this.title,
     this.description,
     this.assignedToId,
+    this.assignedToName,
     required this.priority,
     this.dueDate,
     required this.status,
@@ -45,6 +46,7 @@ class TaskItem {
         title: json['title'] as String,
         description: json['description'] as String?,
         assignedToId: json['assignedToId'] as int?,
+        assignedToName: json['assignedToName'] as String?,
         priority: TaskPriority.fromApiValue(json['priority'] as String),
         dueDate: json['dueDate'] as String?,
         status: TaskStatus.fromApiValue(json['status'] as String),
@@ -57,6 +59,7 @@ class TaskItem {
   final String title;
   final String? description;
   final int? assignedToId;
+  final String? assignedToName;
   final TaskPriority priority;
   final String? dueDate;
   final TaskStatus status;

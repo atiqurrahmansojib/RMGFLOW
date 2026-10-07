@@ -35,12 +35,30 @@ public class TaskItemService {
         task.setEntityId(request.entityId());
         task.setTitle(request.title());
         task.setDescription(request.description());
-        task.setAssignedTo(request.assignedToId() != null ? userRepository.getReferenceById(request.assignedToId()) : null);
+        task.setAssignedTo(resolveAssignee(request.assignedToId()));
         task.setPriority(request.priority());
         task.setDueDate(request.dueDate());
         task.setCreatedBy(userRepository.getReferenceById(currentUser().id()));
         task = taskItemRepository.save(task);
         return toResponse(task);
+    }
+
+    /** Re-assigns (or, with null, un-assigns) a task — the edit path of the assignee picker. */
+    @Transactional
+    public TaskResponse reassign(Long taskId, Long userId) {
+        TaskItem task = findInCurrentOrganization(taskId);
+        task.setAssignedTo(resolveAssignee(userId));
+        return toResponse(taskItemRepository.save(task));
+    }
+
+    /** Assignee must be an active user of the caller's own organization (no cross-tenant ids). */
+    private com.rmgflow.identity.entity.User resolveAssignee(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        return userRepository.findByIdAndOrganizationId(userId, currentUser().organizationId())
+                .filter(com.rmgflow.identity.entity.User::isActive)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Assignee must be an active user of your organization"));
     }
 
     @Transactional
@@ -82,7 +100,7 @@ public class TaskItemService {
                 && task.getStatus() != TaskStatus.DONE && task.getStatus() != TaskStatus.CANCELLED;
         return new TaskResponse(task.getId(), task.getEntityType(), task.getEntityId(), task.getTitle(), task.getDescription(),
                 task.getAssignedTo() != null ? task.getAssignedTo().getId() : null, task.getPriority(), task.getDueDate(),
-                task.getStatus(), overdue);
+                task.getStatus(), overdue, task.getAssignedTo() != null ? task.getAssignedTo().getFullName() : null);
     }
 
     private AuthenticatedUser currentUser() {

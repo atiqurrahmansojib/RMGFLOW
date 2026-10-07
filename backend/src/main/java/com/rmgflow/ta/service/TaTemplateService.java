@@ -84,12 +84,18 @@ public class TaTemplateService {
     /** Document 10.3: style-specific wins over buyer-specific wins over org default. */
     @Transactional(readOnly = true)
     public TaTemplate resolveForOrder(Long styleId, Long buyerId) {
-        Long organizationId = currentUser().organizationId();
-        return taTemplateRepository.findFirstByOrganizationIdAndStyleId(organizationId, styleId)
-                .or(() -> taTemplateRepository.findFirstByOrganizationIdAndBuyerIdAndStyleIsNull(organizationId, buyerId))
-                .or(() -> taTemplateRepository.findFirstByOrganizationIdAndIsDefaultTrue(organizationId))
+        return findForOrder(styleId, buyerId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
                         "No T&A template resolves for this order (no style-specific, buyer-specific, or default template exists)"));
+    }
+
+    /** Same resolution as {@link #resolveForOrder} but never throws (used by A15 auto-generation). */
+    public java.util.Optional<TaTemplate> findForOrder(Long styleId, Long buyerId) {
+        Long organizationId = currentUser().organizationId();
+        return (styleId != null ? taTemplateRepository.findFirstByOrganizationIdAndStyleId(organizationId, styleId)
+                        : java.util.Optional.<TaTemplate>empty())
+                .or(() -> taTemplateRepository.findFirstByOrganizationIdAndBuyerIdAndStyleIsNull(organizationId, buyerId))
+                .or(() -> taTemplateRepository.findFirstByOrganizationIdAndIsDefaultTrue(organizationId));
     }
 
     private TaTemplateResponse toResponse(TaTemplate template) {

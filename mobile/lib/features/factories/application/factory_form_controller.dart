@@ -24,6 +24,11 @@ class FactoryFormSuccess extends FactoryFormState {
   final Factory factory;
 }
 
+/// Soft-delete finished (Doc 8: master data is deactivated, never hard-deleted).
+class FactoryFormDeactivated extends FactoryFormState {
+  const FactoryFormDeactivated();
+}
+
 class FactoryFormFailed extends FactoryFormState {
   const FactoryFormFailed(this.failure);
   final Failure failure;
@@ -47,6 +52,18 @@ class FactoryFormController extends StateNotifier<FactoryFormState> {
             () => existingId == null ? repo.create(draft) : repo.update(existingId, draft),
           );
       state = FactoryFormSuccess(factory);
+    } on DioException catch (e) {
+      state = FactoryFormFailed(mapDioErrorToFailure(e));
+    }
+  }
+
+  Future<void> deactivate(int id) async {
+    state = const FactoryFormSubmitting();
+    try {
+      await _ref.read(authControllerProvider.notifier).callAuthorized(
+            () => _ref.read(factoryRepositoryProvider).deactivate(id),
+          );
+      state = const FactoryFormDeactivated();
     } on DioException catch (e) {
       state = FactoryFormFailed(mapDioErrorToFailure(e));
     }

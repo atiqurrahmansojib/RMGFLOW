@@ -49,6 +49,8 @@ class QuotationFlowIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
     @Autowired
+    private com.rmgflow.identity.repository.AssignmentRepository assignmentRepository;
+    @Autowired
     private UserRepository userRepository;
     @Autowired
     private RoleRepository roleRepository;
@@ -122,8 +124,18 @@ class QuotationFlowIntegrationTest {
         QuotationResponse quotation = createResponse.getBody();
         assertThat(quotation.status()).isEqualTo(QuotationStatus.DRAFT);
 
-        restTemplate.exchange("/api/v1/quotations/" + quotation.id() + "/status?status=APPROVED", HttpMethod.POST,
+        // Doc 10.2: DRAFT cannot jump straight to APPROVED; it must be SENT first.
+        ResponseEntity<String> draftToApproved = restTemplate.exchange(
+                "/api/v1/quotations/" + quotation.id() + "/status?status=APPROVED", HttpMethod.POST,
+                new HttpEntity<>(TestUsers.bearer(token)), String.class);
+        assertThat(draftToApproved.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        restTemplate.exchange("/api/v1/quotations/" + quotation.id() + "/status?status=SENT", HttpMethod.POST,
                 new HttpEntity<>(TestUsers.bearer(token)), QuotationResponse.class);
+        ResponseEntity<QuotationResponse> approved = restTemplate.exchange(
+                "/api/v1/quotations/" + quotation.id() + "/status?status=APPROVED", HttpMethod.POST,
+                new HttpEntity<>(TestUsers.bearer(token)), QuotationResponse.class);
+        assertThat(approved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(approved.getBody().status()).isEqualTo(QuotationStatus.APPROVED);
 
         ResponseEntity<String> blockedStatusChange = restTemplate.exchange(
                 "/api/v1/quotations/" + quotation.id() + "/status?status=REJECTED", HttpMethod.POST,
@@ -138,5 +150,32 @@ class QuotationFlowIntegrationTest {
         assertThat(revisionResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(revisionResponse.getBody().versionNo()).isEqualTo(2);
         assertThat(revisionResponse.getBody().quotationNo()).isEqualTo(quotation.quotationNo());
+    }
+
+    /** Doc 10.3: QUOTATION_MANAGE alone cannot self-approve through the status endpoint. */
+    @Test
+    void juniorMerchandiser_cannotMarkQuotationApproved() {
+        var senior = TestUsers.createAndLogin(restTemplate, userRepository, roleRepository, organizationRepository, passwordEncoder, "SENIOR_MERCHANDISER");
+        String token = senior.accessToken();
+        createStyle(token);
+        CostingResponse approvedCosting = createApprovedCosting(token);
+        QuotationResponse quotation = restTemplate.exchange("/api/v1/quotations", HttpMethod.POST,
+                new HttpEntity<>(new QuotationRequest(approvedCosting.id(), null, buyer.id(), style.id(), 500,
+                        new BigDecimal("7.50"), "USD", "FOB", null, null, 60), TestUsers.bearer(token)),
+                QuotationResponse.class).getBody();
+
+        String junior = TestUsers.createAndLoginAssigned(restTemplate, userRepository, roleRepository,
+                organizationRepository, passwordEncoder, assignmentRepository, "JUNIOR_MERCHANDISER",
+                senior.organizationId(), com.rmgflow.identity.entity.ScopeType.BUYER, buyer.id());
+        ResponseEntity<String> selfApprove = restTemplate.exchange(
+                "/api/v1/quotations/" + quotation.id() + "/status?status=APPROVED", HttpMethod.POST,
+                new HttpEntity<>(TestUsers.bearer(junior)), String.class);
+        assertThat(selfApprove.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        ResponseEntity<QuotationResponse> negotiating = restTemplate.exchange(
+                "/api/v1/quotations/" + quotation.id() + "/status?status=NEGOTIATING", HttpMethod.POST,
+                new HttpEntity<>(TestUsers.bearer(junior)), QuotationResponse.class);
+        assertThat(negotiating.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(negotiating.getBody().status()).isEqualTo(QuotationStatus.NEGOTIATING);
     }
 }

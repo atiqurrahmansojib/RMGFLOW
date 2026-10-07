@@ -37,6 +37,13 @@ class TaskRepositoryImpl implements TaskRepository {
     final response = await _dio.post('/tasks/$id/status', queryParameters: {'status': status.apiValue});
     return TaskItem.fromJson(response.data as Map<String, dynamic>);
   }
+
+  @override
+  Future<TaskItem> reassign(int id, int? userId) async {
+    final response =
+        await _dio.post('/tasks/$id/assignee', queryParameters: {if (userId != null) 'userId': userId});
+    return TaskItem.fromJson(response.data as Map<String, dynamic>);
+  }
 }
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {

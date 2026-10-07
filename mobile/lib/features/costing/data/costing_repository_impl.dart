@@ -13,11 +13,13 @@ class CostingRepositoryImpl implements CostingRepository {
   final Dio _dio;
 
   @override
-  Future<List<Costing>> list({int? styleId, int page = 0, int size = 25}) async {
+  Future<List<Costing>> list({int? styleId, int page = 0, int size = 100}) async {
     final response = await _dio.get('/costings', queryParameters: {
       if (styleId != null) 'styleId': styleId,
       'page': page,
       'size': size,
+      // Newest first, so client-side search/filter covers recent work.
+      'sort': 'id,desc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Costing.fromJson(e as Map<String, dynamic>)).toList();

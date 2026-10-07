@@ -14,11 +14,12 @@ class BuyerRepositoryImpl implements BuyerRepository {
   final Dio _dio;
 
   @override
-  Future<List<Buyer>> list({String? search, int page = 0, int size = 25}) async {
+  Future<List<Buyer>> list({String? search, int page = 0, int size = 100}) async {
     final response = await _dio.get('/buyers', queryParameters: {
       if (search != null && search.isNotEmpty) 'search': search,
       'page': page,
       'size': size,
+      'sort': 'name,asc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Buyer.fromJson(e as Map<String, dynamic>)).toList();

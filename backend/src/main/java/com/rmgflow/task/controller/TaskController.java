@@ -38,6 +38,12 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskItemService.create(request));
     }
 
+    @PostMapping("/{id}/assignee")
+    @PreAuthorize("hasAuthority('TASK_MANAGE')")
+    public TaskResponse reassign(@PathVariable Long id, @RequestParam(required = false) Long userId) {
+        return taskItemService.reassign(id, userId);
+    }
+
     @PostMapping("/{id}/status")
     @PreAuthorize("hasAuthority('TASK_MANAGE')")
     public TaskResponse updateStatus(@PathVariable Long id, @RequestParam TaskStatus status) {

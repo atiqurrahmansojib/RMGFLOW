@@ -1,5 +1,6 @@
 package com.rmgflow.quality.controller;
 
+import com.rmgflow.common.ApiException;
 import com.rmgflow.quality.dto.CapaFactoryResponseRequest;
 import com.rmgflow.quality.dto.CapaRecordRequest;
 import com.rmgflow.quality.dto.CapaRecordResponse;
@@ -25,6 +26,9 @@ public class CapaRecordController {
     public List<CapaRecordResponse> list(@RequestParam(required = false) Long defectId, @RequestParam(required = false) Long inspectionId) {
         if (defectId != null) {
             return capaRecordService.listByDefect(defectId);
+        }
+        if (inspectionId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "defectId or inspectionId is required");
         }
         return capaRecordService.listByInspection(inspectionId);
     }

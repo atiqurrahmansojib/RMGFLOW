@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/widgets/a_record_widgets.dart';
+import '../../../common/widgets/widgets.dart';
 import '../application/sample_form_controller.dart';
 import '../domain/sample.dart';
 
@@ -14,44 +16,22 @@ class SampleFormScreen extends ConsumerStatefulWidget {
 
 class _SampleFormScreenState extends ConsumerState<SampleFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _styleIdController = TextEditingController();
-  final _buyerIdController = TextEditingController();
-  final _factoryIdController = TextEditingController();
-  final _sampleTypeIdController = TextEditingController();
+  int? _buyerId;
+  int? _styleId;
+  int? _factoryId;
+  int? _sampleTypeId;
   DateTime _requestDate = DateTime.now();
   DateTime? _requiredDate;
-
-  @override
-  void dispose() {
-    _styleIdController.dispose();
-    _buyerIdController.dispose();
-    _factoryIdController.dispose();
-    _sampleTypeIdController.dispose();
-    super.dispose();
-  }
-
-  String _iso(DateTime d) => d.toIso8601String().split('T').first;
-
-  Future<void> _pickDate({required bool isRequiredDate}) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: isRequiredDate ? (_requiredDate ?? _requestDate) : _requestDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked == null) return;
-    setState(() => isRequiredDate ? _requiredDate = picked : _requestDate = picked);
-  }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final draft = SampleDraft(
-      styleId: int.parse(_styleIdController.text.trim()),
-      buyerId: int.parse(_buyerIdController.text.trim()),
-      factoryId: int.tryParse(_factoryIdController.text.trim()),
-      sampleTypeId: int.parse(_sampleTypeIdController.text.trim()),
-      requestDate: _iso(_requestDate),
-      requiredDate: _requiredDate != null ? _iso(_requiredDate!) : null,
+      styleId: _styleId!,
+      buyerId: _buyerId!,
+      factoryId: _factoryId,
+      sampleTypeId: _sampleTypeId!,
+      requestDate: toApiDate(_requestDate)!,
+      requiredDate: toApiDate(_requiredDate),
     );
     ref.read(sampleFormControllerProvider.notifier).submit(draft);
   }
@@ -60,73 +40,106 @@ class _SampleFormScreenState extends ConsumerState<SampleFormScreen> {
   Widget build(BuildContext context) {
     ref.listen(sampleFormControllerProvider, (previous, next) {
       if (next is SampleFormSuccess) {
-        Navigator.of(context).pop();
+        showSuccessSnack(context, 'Sample ${next.sample.sampleNo} requested');
+        Navigator.of(context).pop(next.sample);
       } else if (next is SampleFormFailed) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.failure.message)));
+        showErrorSnack(context, next.failure.message);
       }
     });
     final formState = ref.watch(sampleFormControllerProvider);
     final isSubmitting = formState is SampleFormSubmitting;
+    const module = AppModules.sampling;
+    autoSelectSingle(ref, buyerLookupProvider, current: _buyerId, apply: (id) {
+      if (mounted && _buyerId == null) setState(() => _buyerId = id);
+    });
+    autoSelectSingle(ref, styleLookupProvider(_buyerId), current: _styleId, apply: (id) {
+      if (mounted && _styleId == null) setState(() => _styleId = id);
+    });
+    autoSelectSingle(ref, sampleTypeLookupProvider, current: _sampleTypeId, apply: (id) {
+      if (mounted && _sampleTypeId == null) setState(() => _sampleTypeId = id);
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Request Sample')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.page,
           children: [
-            TextFormField(
-              controller: _styleIdController,
-              enabled: !isSubmitting,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Style ID'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+            FormSection(
+              title: 'What sample',
+              icon: module.icon,
+              color: module.color,
+              children: [
+                LookupField(
+                  label: 'Buyer',
+                  icon: Icons.storefront_rounded,
+                  required: true,
+                  enabled: !isSubmitting,
+                  initialValue: _buyerId,
+                  options: buyerLookupProvider,
+                  onChanged: (v) => setState(() {
+                    if (v != _buyerId) _styleId = null;
+                    _buyerId = v;
+                  }),
+                ),
+                LookupField(
+                  key: ValueKey('style-$_buyerId'),
+                  label: 'Style',
+                  icon: Icons.checkroom_rounded,
+                  required: true,
+                  enabled: !isSubmitting,
+                  initialValue: _styleId,
+                  options: styleLookupProvider(_buyerId),
+                  helperText: _buyerId == null ? 'Tip: pick the buyer first to narrow the list' : null,
+                  emptyMessage: 'This buyer has no styles yet.',
+                  onChanged: (v) => setState(() => _styleId = v),
+                ),
+                LookupField(
+                  label: 'Sample type',
+                  icon: Icons.category_outlined,
+                  required: true,
+                  enabled: !isSubmitting,
+                  initialValue: _sampleTypeId,
+                  options: sampleTypeLookupProvider,
+                  emptyMessage: 'No sample types are set up. Ask an admin to add them in master data.',
+                  onChanged: (v) => setState(() => _sampleTypeId = v),
+                ),
+                LookupField(
+                  label: 'Factory',
+                  icon: Icons.factory_outlined,
+                  enabled: !isSubmitting,
+                  initialValue: _factoryId,
+                  options: factoryLookupProvider,
+                  helperText: 'Who will make the sample',
+                  onChanged: (v) => setState(() => _factoryId = v),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _buyerIdController,
-              enabled: !isSubmitting,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Buyer ID'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+            FormSection(
+              title: 'Dates',
+              icon: Icons.event_rounded,
+              color: module.color,
+              children: [
+                DateField(
+                  label: 'Request date',
+                  required: true,
+                  enabled: !isSubmitting,
+                  value: _requestDate,
+                  onChanged: (d) => setState(() => _requestDate = d ?? _requestDate),
+                ),
+                DateField(
+                  label: 'Required by',
+                  enabled: !isSubmitting,
+                  value: _requiredDate,
+                  firstDate: _requestDate,
+                  helperText: 'When the buyer needs it',
+                  onChanged: (d) => setState(() => _requiredDate = d),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _factoryIdController,
-              enabled: !isSubmitting,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Factory ID (optional)'),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _sampleTypeIdController,
-              enabled: !isSubmitting,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Sample Type ID'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Request date'),
-              subtitle: Text(_iso(_requestDate)),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting ? null : () => _pickDate(isRequiredDate: false),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Required date (optional)'),
-              subtitle: Text(_requiredDate != null ? _iso(_requiredDate!) : 'Not set'),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting ? null : () => _pickDate(isRequiredDate: true),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: isSubmitting ? null : _submit,
-              child: isSubmitting
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Request sample'),
-            ),
+            const SizedBox(height: AppSpacing.xl),
+            PrimaryButton(label: 'Request sample', icon: Icons.send_rounded, loading: isSubmitting, onPressed: _submit),
           ],
         ),
       ),

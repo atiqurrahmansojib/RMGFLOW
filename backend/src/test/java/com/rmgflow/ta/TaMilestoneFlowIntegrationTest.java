@@ -112,8 +112,9 @@ class TaMilestoneFlowIntegrationTest {
         OrderResponse order = restTemplate.exchange("/api/v1/orders", HttpMethod.POST,
                 new HttpEntity<>(orderRequest, TestUsers.bearer(token)), OrderResponse.class).getBody();
 
+        // Doc A15: confirming the order auto-generated the plan from the buyer's template.
         ResponseEntity<TaMilestoneResponse[]> generateResponse = restTemplate.exchange(
-                "/api/v1/orders/" + order.id() + "/ta-milestones/generate?styleId=" + style.id(), HttpMethod.POST,
+                "/api/v1/orders/" + order.id() + "/ta-milestones", HttpMethod.GET,
                 new HttpEntity<>(TestUsers.bearer(token)), TaMilestoneResponse[].class);
         assertThat(generateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<TaMilestoneResponse> generated = List.of(generateResponse.getBody());
@@ -189,7 +190,7 @@ class TaMilestoneFlowIntegrationTest {
         OrderResponse order = restTemplate.exchange("/api/v1/orders", HttpMethod.POST,
                 new HttpEntity<>(orderRequest, TestUsers.bearer(token)), OrderResponse.class).getBody();
         TaMilestoneResponse cutting = restTemplate.exchange(
-                "/api/v1/orders/" + order.id() + "/ta-milestones/generate?styleId=" + style.id(), HttpMethod.POST,
+                "/api/v1/orders/" + order.id() + "/ta-milestones", HttpMethod.GET,
                 new HttpEntity<>(TestUsers.bearer(token)), TaMilestoneResponse[].class).getBody()[0];
 
         ResponseEntity<String> response = restTemplate.exchange(

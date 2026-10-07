@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common/widgets/error_state_view.dart';
-import '../../../common/widgets/loading_view.dart';
+import '../../../common/widgets/b_kit.dart';
+import '../../../common/widgets/widgets.dart';
 import '../application/production_controller.dart';
 import 'production_update_form_screen.dart';
 
@@ -13,28 +13,19 @@ class ProductionProgressScreen extends ConsumerWidget {
 
   final int orderId;
 
-  Widget _stageRow(String label, int qty, int orderQuantity) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label),
-            Text('$qty / $orderQuantity'),
-          ],
-        ),
-      );
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(productionProgressControllerProvider(orderId));
+    void addUpdate() => Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => ProductionUpdateFormScreen(orderId: orderId)))
+        .then((_) => ref.read(productionProgressControllerProvider(orderId).notifier).refresh());
 
     return Scaffold(
       appBar: AppBar(title: const Text('Production Progress')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ProductionUpdateFormScreen(orderId: orderId)),
-        ).then((_) => ref.read(productionProgressControllerProvider(orderId).notifier).refresh()),
-        child: const Icon(Icons.add),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: addUpdate,
+        icon: const Icon(Icons.add),
+        label: const Text('Daily update'),
       ),
       body: switch (state) {
         ProductionProgressLoading() => const LoadingView(),
@@ -45,41 +36,130 @@ class ProductionProgressScreen extends ConsumerWidget {
         ProductionProgressLoaded(:final progress) => RefreshIndicator(
             onRefresh: () => ref.read(productionProgressControllerProvider(orderId).notifier).refresh(),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: AppSpacing.listWithFab.copyWith(left: 0, right: 0, top: 0),
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Order quantity: ${progress.orderQuantity}', style: Theme.of(context).textTheme.titleMedium),
-                        const Divider(height: 24),
-                        _stageRow('Cutting', progress.cumulativeCutting, progress.orderQuantity),
-                        _stageRow('Sewing', progress.cumulativeSewing, progress.orderQuantity),
-                        _stageRow('Finishing', progress.cumulativeFinishing, progress.orderQuantity),
-                        _stageRow('Packing', progress.cumulativePacking, progress.orderQuantity),
-                        _stageRow('Rejection', progress.cumulativeRejection, progress.orderQuantity),
-                        _stageRow('Alteration', progress.cumulativeAlteration, progress.orderQuantity),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(value: (progress.packingProgressPercent / 100).clamp(0, 1)),
-                        const SizedBox(height: 4),
-                        Text('Packing progress: ${progress.packingProgressPercent.toStringAsFixed(1)}%'),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Daily Updates', style: Theme.of(context).textTheme.titleMedium),
-                ...progress.dailyUpdates.map((u) => Card(
-                      child: ListTile(
-                        title: Text(u.updateDate),
-                        subtitle: Text(
-                          'Cut ${u.cuttingQty} · Sew ${u.sewingQty} · Finish ${u.finishingQty} · '
-                          'Pack ${u.packingQty} · Reject ${u.rejectionQty} · Alter ${u.alterationQty}',
+                GradientHeader.module(
+                  AppModules.production,
+                  eyebrow: 'Packed',
+                  title: '${progress.packingProgressPercent.toStringAsFixed(1)}%',
+                  subtitle: '${fmtQty(progress.cumulativePacking)} of ${fmtQty(progress.orderQuantity)} pcs packed',
+                  bottom: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        child: LinearProgressIndicator(
+                          value: (progress.packingProgressPercent / 100).clamp(0.0, 1.0),
+                          minHeight: 8,
+                          color: Colors.white,
+                          backgroundColor: Colors.white.withValues(alpha: 0.25),
                         ),
                       ),
-                    )),
+                      const SizedBox(height: AppSpacing.lg),
+                      Wrap(
+                        spacing: AppSpacing.xxl,
+                        runSpacing: AppSpacing.md,
+                        children: [
+                          HeaderStat(value: fmtQty(progress.orderQuantity), label: 'Order qty'),
+                          HeaderStat(value: fmtQty(progress.cumulativeRejection), label: 'Rejected'),
+                          HeaderStat(value: '${progress.dailyUpdates.length}', label: 'Daily updates'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SectionHeader('Stages vs order quantity',
+                          icon: Icons.stacked_bar_chart_rounded, accentColor: AppModules.production.color),
+                      AppCard(
+                        child: Column(
+                          children: [
+                            StageProgress(
+                              label: 'Cutting',
+                              icon: Icons.content_cut_rounded,
+                              value: progress.cumulativeCutting,
+                              target: progress.orderQuantity,
+                              color: AppModules.sampling.color,
+                            ),
+                            StageProgress(
+                              label: 'Sewing',
+                              icon: Icons.dry_cleaning_outlined,
+                              value: progress.cumulativeSewing,
+                              target: progress.orderQuantity,
+                              color: AppModules.production.color,
+                            ),
+                            StageProgress(
+                              label: 'Finishing',
+                              icon: Icons.iron_outlined,
+                              value: progress.cumulativeFinishing,
+                              target: progress.orderQuantity,
+                              color: AppModules.costing.color,
+                            ),
+                            StageProgress(
+                              label: 'Packing',
+                              icon: Icons.inventory_2_outlined,
+                              value: progress.cumulativePacking,
+                              target: progress.orderQuantity,
+                              color: AppColors.success,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SectionHeader('Quality loss',
+                          icon: Icons.report_gmailerrorred_rounded, accentColor: AppColors.danger),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StatCard(
+                              value: fmtQty(progress.cumulativeRejection),
+                              label: 'Rejected pcs',
+                              icon: Icons.block_rounded,
+                              color: AppColors.danger,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: StatCard(
+                              value: fmtQty(progress.cumulativeAlteration),
+                              label: 'Altered pcs',
+                              icon: Icons.build_outlined,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SectionHeader('Daily updates',
+                          count: progress.dailyUpdates.length,
+                          icon: Icons.event_repeat_rounded,
+                          accentColor: AppModules.production.color),
+                      if (progress.dailyUpdates.isEmpty)
+                        EmptyStateView(
+                          message: 'No daily updates yet. Record today\'s cutting, sewing and packing output.',
+                          icon: Icons.trending_up_rounded,
+                          color: AppModules.production.color,
+                          actionLabel: 'Daily update',
+                          onAction: addUpdate,
+                        ),
+                      ...progress.dailyUpdates.map((u) => AppCard(
+                            accentColor: AppModules.production.color,
+                            child: RecordRow(
+                              leading: IconBadge(icon: Icons.event_note_rounded, color: AppModules.production.color),
+                              title: formatApiDate(u.updateDate),
+                              subtitle: 'Cut ${fmtQty(u.cuttingQty)} · Sew ${fmtQty(u.sewingQty)} · '
+                                  'Finish ${fmtQty(u.finishingQty)} · Pack ${fmtQty(u.packingQty)}',
+                              meta: u.rejectionQty + u.alterationQty == 0
+                                  ? null
+                                  : 'Reject ${fmtQty(u.rejectionQty)} · Alter ${fmtQty(u.alterationQty)}',
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

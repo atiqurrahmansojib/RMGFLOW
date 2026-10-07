@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/widgets/widgets.dart';
 import '../application/order_form_controller.dart';
 import '../domain/order.dart';
 
@@ -18,32 +19,31 @@ class OrderFormScreen extends ConsumerStatefulWidget {
 
 class _OrderItemRow {
   _OrderItemRow()
-      : styleIdController = TextEditingController(),
-        factoryIdController = TextEditingController(),
-        colorController = TextEditingController(),
+      : colorController = TextEditingController(),
         sizeController = TextEditingController(),
         quantityController = TextEditingController(),
         unitPriceController = TextEditingController();
 
-  final TextEditingController styleIdController;
-  final TextEditingController factoryIdController;
+  int? styleId;
+  int? factoryId;
   final TextEditingController colorController;
   final TextEditingController sizeController;
   final TextEditingController quantityController;
   final TextEditingController unitPriceController;
 
+  double get lineValue =>
+      (int.tryParse(quantityController.text.trim()) ?? 0) * (double.tryParse(unitPriceController.text.trim()) ?? 0);
+
   OrderItemDraft toDraft() => OrderItemDraft(
-        styleId: int.parse(styleIdController.text.trim()),
-        factoryId: int.parse(factoryIdController.text.trim()),
-        color: colorController.text.trim().isEmpty ? null : colorController.text.trim(),
-        size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
+        styleId: styleId!,
+        factoryId: factoryId!,
+        color: blankToNull(colorController.text),
+        size: blankToNull(sizeController.text),
         quantity: int.parse(quantityController.text.trim()),
         unitPrice: double.parse(unitPriceController.text.trim()),
       );
 
   void dispose() {
-    styleIdController.dispose();
-    factoryIdController.dispose();
     colorController.dispose();
     sizeController.dispose();
     quantityController.dispose();
@@ -54,12 +54,12 @@ class _OrderItemRow {
 class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _buyerPoNoController = TextEditingController();
-  final _buyerIdController = TextEditingController();
-  final _quotationIdController = TextEditingController();
-  final _currencyController = TextEditingController();
-  final _incotermController = TextEditingController();
+  final _currencyController = TextEditingController(text: 'USD');
+  final _incotermController = TextEditingController(text: 'FOB');
   final _destinationController = TextEditingController();
   final _overrideReasonController = TextEditingController();
+  int? _buyerId;
+  int? _quotationId;
   DateTime _orderDate = DateTime.now();
   DateTime? _exFactoryDate;
   DateTime? _deliveryDate;
@@ -69,8 +69,6 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   @override
   void dispose() {
     _buyerPoNoController.dispose();
-    _buyerIdController.dispose();
-    _quotationIdController.dispose();
     _currencyController.dispose();
     _incotermController.dispose();
     _destinationController.dispose();
@@ -81,34 +79,54 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
     super.dispose();
   }
 
-  String _iso(DateTime d) => d.toIso8601String().split('T').first;
-
-  Future<void> _pickDate(void Function(DateTime) onPicked, DateTime initial) async {
-    final picked = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(2020), lastDate: DateTime(2100));
-    if (picked != null) setState(() => onPicked(picked));
-  }
-
   void _addItem() => setState(() => _items.add(_OrderItemRow()));
 
-  void _removeItem(int index) => setState(() {
-        _items[index].dispose();
-        _items.removeAt(index);
-      });
+  Future<void> _removeItem(int index) async {
+    final row = _items[index];
+    if (row.styleId != null || row.quantityController.text.isNotEmpty) {
+      final ok = await confirmAction(
+        context,
+        title: 'Remove item ${index + 1}?',
+        message: 'This order line will be removed.',
+        confirmLabel: 'Remove',
+        destructive: true,
+      );
+      if (!ok) return;
+    }
+    setState(() {
+      _items.removeAt(index);
+      row.dispose();
+    });
+  }
 
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      showErrorSnack(context, 'Please fix the highlighted fields');
+      return;
+    }
+    final total = _items.fold<double>(0, (sum, r) => sum + r.lineValue);
+    final qty = _items.fold<int>(0, (sum, r) => sum + (int.tryParse(r.quantityController.text.trim()) ?? 0));
+    final ok = await confirmAction(
+      context,
+      title: 'Create this order?',
+      message: 'PO ${_buyerPoNoController.text.trim()} · ${_items.length} line(s) · $qty pcs · '
+          '${_currencyController.text.trim().toUpperCase()} ${total.toStringAsFixed(2)}.\n\n'
+          'Once confirmed, changes need an amendment.',
+      confirmLabel: 'Create order',
+    );
+    if (!ok) return;
     final draft = OrderDraft(
       buyerPoNo: _buyerPoNoController.text.trim(),
-      buyerId: int.parse(_buyerIdController.text.trim()),
-      quotationId: int.tryParse(_quotationIdController.text.trim()),
-      orderDate: _iso(_orderDate),
-      exFactoryDate: _exFactoryDate != null ? _iso(_exFactoryDate!) : null,
-      deliveryDate: _deliveryDate != null ? _iso(_deliveryDate!) : null,
-      incoterm: _incotermController.text.trim().isEmpty ? null : _incotermController.text.trim().toUpperCase(),
-      destinationCountry: _destinationController.text.trim().isEmpty ? null : _destinationController.text.trim().toUpperCase(),
+      buyerId: _buyerId!,
+      quotationId: _quotationId,
+      orderDate: toApiDate(_orderDate)!,
+      exFactoryDate: toApiDate(_exFactoryDate),
+      deliveryDate: toApiDate(_deliveryDate),
+      incoterm: blankToNull(_incotermController.text)?.toUpperCase(),
+      destinationCountry: blankToNull(_destinationController.text)?.toUpperCase(),
       currency: _currencyController.text.trim().toUpperCase(),
       overrideFactoryApproval: _overrideFactoryApproval,
-      overrideReason: _overrideReasonController.text.trim().isEmpty ? null : _overrideReasonController.text.trim(),
+      overrideReason: _overrideFactoryApproval ? blankToNull(_overrideReasonController.text) : null,
       items: _items.map((r) => r.toDraft()).toList(),
     );
     ref.read(orderFormControllerProvider.notifier).submit(draft);
@@ -118,183 +136,237 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   Widget build(BuildContext context) {
     ref.listen(orderFormControllerProvider, (previous, next) {
       if (next is OrderFormSuccess) {
-        Navigator.of(context).pop();
+        showSuccessSnack(context, 'Order ${next.order.orderNo} created');
+        // The list opens the new order's hub straight away.
+        Navigator.of(context).pop(next.order);
       } else if (next is OrderFormFailed) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.failure.message)));
+        showErrorSnack(context, next.failure.message);
       }
     });
     final formState = ref.watch(orderFormControllerProvider);
     final isSubmitting = formState is OrderFormSubmitting;
+    final total = _items.fold<double>(0, (sum, r) => sum + r.lineValue);
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Order')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.page,
           children: [
-            TextFormField(
-              controller: _buyerPoNoController,
-              enabled: !isSubmitting,
-              decoration: const InputDecoration(labelText: 'Buyer PO No'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _buyerIdController,
+            SectionHeader('Order details', icon: Icons.receipt_long_rounded, accentColor: AppModules.orders.color),
+            AppCard(
+              accentColor: AppModules.orders.color,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _buyerPoNoController,
                     enabled: !isSubmitting,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Buyer ID'),
-                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                    textCapitalization: TextCapitalization.characters,
+                    textInputAction: TextInputAction.next,
+                    decoration:
+                        const InputDecoration(labelText: 'Buyer PO number', hintText: "As printed on the buyer's PO"),
+                    validator: Validators.required('Buyer PO number'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _quotationIdController,
+                  const SizedBox(height: AppSpacing.md),
+                  LookupField(
+                    label: 'Buyer',
+                    icon: Icons.storefront_rounded,
+                    required: true,
                     enabled: !isSubmitting,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Quotation ID (optional)'),
+                    initialValue: _buyerId,
+                    options: buyerLookupProvider,
+                    onChanged: (v) => setState(() {
+                      if (v != _buyerId) {
+                        _quotationId = null;
+                        // Styles are buyer-specific; a buyer switch invalidates picked styles.
+                        for (final r in _items) {
+                          r.styleId = null;
+                        }
+                      }
+                      _buyerId = v;
+                    }),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Order date'),
-              subtitle: Text(_iso(_orderDate)),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting ? null : () => _pickDate((d) => _orderDate = d, _orderDate),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Ex-factory date'),
-              subtitle: Text(_exFactoryDate != null ? _iso(_exFactoryDate!) : 'Not set (required for T&A generation)'),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting ? null : () => _pickDate((d) => _exFactoryDate = d, _exFactoryDate ?? _orderDate),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Delivery date (optional)'),
-              subtitle: Text(_deliveryDate != null ? _iso(_deliveryDate!) : 'Not set'),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting ? null : () => _pickDate((d) => _deliveryDate = d, _deliveryDate ?? _orderDate),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _currencyController,
+                  const SizedBox(height: AppSpacing.md),
+                  LookupField(
+                    key: ValueKey('quotation-$_buyerId'),
+                    label: 'Quotation',
+                    icon: Icons.request_quote_outlined,
+                    enabled: !isSubmitting && _buyerId != null,
+                    initialValue: _quotationId,
+                    options: quotationLookupProvider(_buyerId),
+                    helperText: _buyerId == null ? 'Pick the buyer first' : 'Link the accepted quotation, if any',
+                    emptyMessage: 'No quotations for this buyer.',
+                    onChanged: (v) => setState(() => _quotationId = v),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  DateField(
+                    label: 'Order date',
+                    required: true,
                     enabled: !isSubmitting,
-                    maxLength: 3,
-                    decoration: const InputDecoration(labelText: 'Currency'),
-                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                    value: _orderDate,
+                    onChanged: (d) => setState(() => _orderDate = d ?? _orderDate),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _incotermController,
+                  const SizedBox(height: AppSpacing.md),
+                  DateField(
+                    label: 'Ex-factory date',
                     enabled: !isSubmitting,
-                    maxLength: 3,
-                    decoration: const InputDecoration(labelText: 'Incoterm (optional)'),
+                    value: _exFactoryDate,
+                    firstDate: _orderDate,
+                    helperText: 'Needed to generate the T&A calendar',
+                    onChanged: (d) => setState(() => _exFactoryDate = d),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.md),
+                  DateField(
+                    label: 'Delivery date',
+                    enabled: !isSubmitting,
+                    value: _deliveryDate,
+                    firstDate: _exFactoryDate ?? _orderDate,
+                    validator: (d) => (d != null && _exFactoryDate != null && d.isBefore(_exFactoryDate!))
+                        ? 'Delivery cannot be before ex-factory'
+                        : null,
+                    onChanged: (d) => setState(() => _deliveryDate = d),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: CodePickerField(
+                          controller: _currencyController,
+                          label: 'Currency',
+                          codes: currencyCodesProvider,
+                          enabled: !isSubmitting,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _incotermController,
+                          enabled: !isSubmitting,
+                          maxLength: 3,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(labelText: 'Incoterm (optional)', counterText: ''),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _destinationController,
+                          enabled: !isSubmitting,
+                          maxLength: 2,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(labelText: 'Destination', hintText: 'US', counterText: ''),
+                          validator: (v) =>
+                              (v != null && v.trim().isNotEmpty && v.trim().length != 2) ? '2 letters' : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            TextFormField(
-              controller: _destinationController,
-              enabled: !isSubmitting,
-              maxLength: 2,
-              decoration: const InputDecoration(labelText: 'Destination country (optional)'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Order Items', style: TextStyle(fontWeight: FontWeight.bold)),
-                TextButton.icon(onPressed: isSubmitting ? null : _addItem, icon: const Icon(Icons.add), label: const Text('Add item')),
-              ],
+            SectionHeader(
+              'Order lines',
+              icon: Icons.checkroom_rounded,
+              accentColor: AppModules.styles.color,
+              count: _items.length,
+              actionLabel: 'Add line',
+              onAction: isSubmitting ? null : _addItem,
             ),
             ..._items.asMap().entries.map((entry) {
               final index = entry.key;
               final row = entry.value;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
+              return AppCard(
+                key: ObjectKey(row),
+                accentColor: AppModules.styles.color,
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.zero,
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: row.styleIdController,
-                              enabled: !isSubmitting,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Style ID'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextFormField(
-                              controller: row.factoryIdController,
-                              enabled: !isSubmitting,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Factory ID'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                          ),
+                          Expanded(child: Text('Line ${index + 1}', style: Theme.of(context).textTheme.titleSmall)),
                           IconButton(
+                            tooltip: 'Remove line',
                             onPressed: isSubmitting || _items.length == 1 ? null : () => _removeItem(index),
                             icon: const Icon(Icons.delete_outline),
                           ),
                         ],
                       ),
+                      LookupField(
+                        key: ValueKey('style-$index-$_buyerId'),
+                        label: 'Style',
+                        icon: Icons.checkroom_rounded,
+                        required: true,
+                        enabled: !isSubmitting,
+                        initialValue: row.styleId,
+                        options: styleLookupProvider(_buyerId),
+                        emptyMessage: _buyerId == null ? 'No styles yet.' : 'This buyer has no styles yet.',
+                        onChanged: (v) => row.styleId = v,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      LookupField(
+                        label: 'Factory',
+                        icon: Icons.factory_outlined,
+                        required: true,
+                        enabled: !isSubmitting,
+                        initialValue: row.factoryId,
+                        options: factoryLookupProvider,
+                        onChanged: (v) => row.factoryId = v,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: [
                           Expanded(
                             child: TextFormField(
                               controller: row.colorController,
                               enabled: !isSubmitting,
+                              textCapitalization: TextCapitalization.words,
                               decoration: const InputDecoration(labelText: 'Color (optional)'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: TextFormField(
                               controller: row.sizeController,
                               enabled: !isSubmitting,
+                              textCapitalization: TextCapitalization.characters,
                               decoration: const InputDecoration(labelText: 'Size (optional)'),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: TextFormField(
                               controller: row.quantityController,
                               enabled: !isSubmitting,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Quantity'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                              inputFormatters: NumberInput.integer,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(labelText: 'Quantity', suffixText: 'pcs'),
+                              validator: Validators.positiveInt(),
+                              onChanged: (_) => setState(() {}),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: TextFormField(
                               controller: row.unitPriceController,
                               enabled: !isSubmitting,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Unit Price'),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                              keyboardType: NumberInput.decimalKeyboard,
+                              inputFormatters: NumberInput.decimal,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _submit(),
+                              decoration: const InputDecoration(labelText: 'Unit price'),
+                              validator: Validators.money(what: 'Unit price'),
+                              onChanged: (_) => setState(() {}),
                             ),
                           ),
                         ],
@@ -304,11 +376,20 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
                 ),
               );
             }),
-            const SizedBox(height: 16),
+            AppCard(
+              accentColor: AppModules.financial.color,
+              child: InfoRow(
+                label: 'Estimated order value',
+                value: '${_currencyController.text.trim().toUpperCase()} ${total.toStringAsFixed(2)}',
+                emphasize: true,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Override factory-buyer approval gate'),
-              subtitle: const Text('Requires ORDER_OVERRIDE_FACTORY_APPROVAL permission'),
+              title: const Text('Override factory approval check'),
+              subtitle:
+                  const Text('Only for users allowed to place orders at a factory not yet approved by this buyer'),
               value: _overrideFactoryApproval,
               onChanged: isSubmitting ? null : (v) => setState(() => _overrideFactoryApproval = v),
             ),
@@ -316,15 +397,12 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
               TextFormField(
                 controller: _overrideReasonController,
                 enabled: !isSubmitting,
+                maxLines: 2,
                 decoration: const InputDecoration(labelText: 'Override reason'),
+                validator: Validators.required('Override reason'),
               ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: isSubmitting ? null : _submit,
-              child: isSubmitting
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Create order'),
-            ),
+            const SizedBox(height: AppSpacing.xl),
+            PrimaryButton(label: 'Create order', icon: Icons.check_rounded, loading: isSubmitting, onPressed: _submit),
           ],
         ),
       ),

@@ -17,6 +17,8 @@ import com.rmgflow.masterdata.repository.CurrencyRepository;
 import com.rmgflow.masterdata.repository.IncotermRepository;
 import com.rmgflow.masterdata.repository.PaymentTermRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +41,7 @@ import org.springframework.util.StringUtils;
 public class BuyerService {
 
     private final BuyerRepository buyerRepository;
+    private final AccessScopeService accessScopeService;
     private final OrganizationRepository organizationRepository;
     private final CountryRepository countryRepository;
     private final CurrencyRepository currencyRepository;
@@ -60,13 +63,9 @@ public class BuyerService {
         applyRequest(buyer, request);
         buyer = buyerRepository.save(buyer);
 
-        if (hasRole("JUNIOR_MERCHANDISER") && !hasAnyRole("GENERAL_MANAGER", "OWNER_MD", "SENIOR_MERCHANDISER")) {
-            Assignment assignment = new Assignment();
-            assignment.setUser(userRepository.getReferenceById(currentUser().id()));
-            assignment.setScopeType(ScopeType.BUYER);
-            assignment.setScopeId(buyer.getId());
-            assignmentRepository.save(assignment);
-        }
+        // Doc 5.2/5.3: a buyer-scoped creator (e.g. a Junior Merchandiser's "own" buyer)
+        // is assigned to the new buyer so it stays visible to them.
+        accessScopeService.assignCreatorToBuyer(buyer.getId());
 
         auditService.record("BUYER_CREATE", "Buyer", buyer.getId(), null, toResponse(buyer), null);
         return toResponse(buyer);
@@ -100,11 +99,8 @@ public class BuyerService {
 
     @Transactional(readOnly = true)
     public Page<BuyerResponse> list(String search, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Buyer> page = StringUtils.hasText(search)
-                ? buyerRepository.findByOrganizationIdAndActiveTrueAndNameContainingIgnoreCase(organizationId, search, pageable)
-                : buyerRepository.findByOrganizationIdAndActiveTrue(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return buyerRepository.findVisible(currentUser().organizationId(), StringUtils.hasText(search) ? search.trim() : "", scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     @Transactional
@@ -122,7 +118,9 @@ public class BuyerService {
      * (BuyerContactService, FactoryBuyerApprovalService, …) reuse this instead of
      * re-deriving the same tenant check against BuyerRepository directly. */
     public Buyer findInCurrentOrganization(Long buyerId) {
-        return buyerRepository.findByIdAndOrganizationId(buyerId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return buyerRepository.findVisibleById(buyerId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Buyer not found"));
     }
 

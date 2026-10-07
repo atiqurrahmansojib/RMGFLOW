@@ -24,6 +24,11 @@ class BuyerFormSuccess extends BuyerFormState {
   final Buyer buyer;
 }
 
+/// Soft-delete finished (Doc 8: master data is deactivated, never hard-deleted).
+class BuyerFormDeactivated extends BuyerFormState {
+  const BuyerFormDeactivated();
+}
+
 class BuyerFormFailed extends BuyerFormState {
   const BuyerFormFailed(this.failure);
   final Failure failure;
@@ -50,6 +55,18 @@ class BuyerFormController extends StateNotifier<BuyerFormState> {
             () => existingId == null ? repo.create(draft) : repo.update(existingId, draft),
           );
       state = BuyerFormSuccess(buyer);
+    } on DioException catch (e) {
+      state = BuyerFormFailed(mapDioErrorToFailure(e));
+    }
+  }
+
+  Future<void> deactivate(int id) async {
+    state = const BuyerFormSubmitting();
+    try {
+      await _ref.read(authControllerProvider.notifier).callAuthorized(
+            () => _ref.read(buyerRepositoryProvider).deactivate(id),
+          );
+      state = const BuyerFormDeactivated();
     } on DioException catch (e) {
       state = BuyerFormFailed(mapDioErrorToFailure(e));
     }

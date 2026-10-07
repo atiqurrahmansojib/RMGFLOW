@@ -2,7 +2,7 @@ import 'order.dart';
 
 /// Document 12.2: domain contract for /api/v1/orders (+ nested /amendments, Doc 9.4/9.6).
 abstract class OrderRepository {
-  Future<List<Order>> list({int? buyerId, OrderStatus? status, int page = 0, int size = 25});
+  Future<List<Order>> list({int? buyerId, OrderStatus? status, int page = 0, int size = 100});
   Future<Order> get(int id);
   Future<Order> create(OrderDraft draft);
   Future<void> cancel(int id, String reason);

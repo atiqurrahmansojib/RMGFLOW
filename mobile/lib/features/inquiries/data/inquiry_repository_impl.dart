@@ -14,6 +14,9 @@ class InquiryRepositoryImpl implements InquiryRepository {
   Future<List<Inquiry>> list({InquiryStatus? status}) async {
     final response = await _dio.get('/inquiries', queryParameters: {
       if (status != null) 'status': status.apiValue,
+      // Spring's default page is 20 rows; load enough for search, newest first.
+      'size': 100,
+      'sort': 'id,desc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Inquiry.fromJson(e as Map<String, dynamic>)).toList();

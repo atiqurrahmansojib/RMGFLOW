@@ -31,8 +31,7 @@ class CostingFormFailed extends CostingFormState {
 
 enum CostingFormMode { create, editDraft, revise }
 
-final costingFormControllerProvider =
-    StateNotifierProvider.autoDispose<CostingFormController, CostingFormState>((ref) {
+final costingFormControllerProvider = StateNotifierProvider.autoDispose<CostingFormController, CostingFormState>((ref) {
   return CostingFormController(ref);
 });
 

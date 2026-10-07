@@ -18,6 +18,8 @@ import com.rmgflow.order.entity.OrderItem;
 import com.rmgflow.order.entity.OrderStatus;
 import com.rmgflow.order.repository.OrderRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import com.rmgflow.style.entity.Style;
 import com.rmgflow.style.service.StyleService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final AccessScopeService accessScopeService;
     private final BuyerService buyerService;
     private final StyleService styleService;
     private final FactoryService factoryService;
@@ -57,6 +60,7 @@ public class OrderService {
     private final PaymentTermRepository paymentTermRepository;
     private final CountryRepository countryRepository;
     private final AuditService auditService;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public OrderResponse create(OrderRequest request) {
@@ -102,6 +106,8 @@ public class OrderService {
         order = orderRepository.save(order);
 
         auditService.record("ORDER_CREATE", "Order", order.getId(), null, toResponse(order), null);
+        eventPublisher.publishEvent(new OrderConfirmedEvent(order.getId(),
+                order.getItems().isEmpty() ? null : order.getItems().get(0).getStyle().getId()));
         return toResponse(order);
     }
 
@@ -127,20 +133,14 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> list(Long buyerId, OrderStatus status, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Order> page;
-        if (buyerId != null) {
-            page = orderRepository.findByOrganizationIdAndBuyerId(organizationId, buyerId, pageable);
-        } else if (status != null) {
-            page = orderRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
-        } else {
-            page = orderRepository.findByOrganizationId(organizationId, pageable);
-        }
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return orderRepository.findVisible(currentUser().organizationId(), buyerId, status, scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Order findInCurrentOrganization(Long orderId) {
-        return orderRepository.findByIdAndOrganizationId(orderId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return orderRepository.findVisibleById(orderId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Order not found"));
     }
 

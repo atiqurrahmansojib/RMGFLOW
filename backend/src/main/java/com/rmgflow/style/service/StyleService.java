@@ -7,6 +7,8 @@ import com.rmgflow.common.ApiException;
 import com.rmgflow.identity.repository.OrganizationRepository;
 import com.rmgflow.masterdata.repository.SeasonRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import com.rmgflow.style.dto.StyleRequest;
 import com.rmgflow.style.dto.StyleResponse;
 import com.rmgflow.style.entity.Style;
@@ -27,6 +29,7 @@ import org.springframework.util.StringUtils;
 public class StyleService {
 
     private final StyleRepository styleRepository;
+    private final AccessScopeService accessScopeService;
     private final BuyerService buyerService;
     private final OrganizationRepository organizationRepository;
     private final SeasonRepository seasonRepository;
@@ -71,15 +74,14 @@ public class StyleService {
 
     @Transactional(readOnly = true)
     public Page<StyleResponse> list(String search, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Style> page = StringUtils.hasText(search)
-                ? styleRepository.findByOrganizationIdAndActiveTrueAndStyleNoContainingIgnoreCase(organizationId, search, pageable)
-                : styleRepository.findByOrganizationIdAndActiveTrue(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return styleRepository.findVisible(currentUser().organizationId(), StringUtils.hasText(search) ? search.trim() : "", scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Style findInCurrentOrganization(Long styleId) {
-        return styleRepository.findByIdAndOrganizationId(styleId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return styleRepository.findVisibleById(styleId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Style not found"));
     }
 

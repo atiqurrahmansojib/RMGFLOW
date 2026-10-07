@@ -1,5 +1,8 @@
 package com.rmgflow.quotation.service;
 
+import com.rmgflow.approval.entity.ApprovalStatus;
+import com.rmgflow.approval.entity.ApprovalTargetType;
+import com.rmgflow.approval.service.ApprovalDecidedEvent;
 import com.rmgflow.audit.service.AuditService;
 import com.rmgflow.buyer.entity.Buyer;
 import com.rmgflow.buyer.service.BuyerService;
@@ -17,12 +20,16 @@ import com.rmgflow.quotation.entity.Quotation;
 import com.rmgflow.quotation.entity.QuotationStatus;
 import com.rmgflow.quotation.repository.QuotationRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import com.rmgflow.style.entity.Style;
 import com.rmgflow.style.service.StyleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,9 +47,25 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class QuotationService {
 
-    private static final Set<QuotationStatus> EDITABLE = EnumSet.of(QuotationStatus.DRAFT, QuotationStatus.NEGOTIATING);
+    /**
+     * Doc 10.2 status machine for the manual status endpoint:
+     * DRAFT -> SENT | NEGOTIATING; SENT -> NEGOTIATING | APPROVED | REJECTED | EXPIRED;
+     * NEGOTIATING -> SENT | APPROVED | REJECTED | EXPIRED. APPROVED additionally needs
+     * QUOTATION_APPROVE. APPROVED/REJECTED/EXPIRED/SUPERSEDED are terminal here
+     * (SUPERSEDED is only ever set by revise()).
+     */
+    private static final java.util.Map<QuotationStatus, Set<QuotationStatus>> TRANSITIONS = java.util.Map.of(
+            QuotationStatus.DRAFT, EnumSet.of(QuotationStatus.SENT, QuotationStatus.NEGOTIATING),
+            QuotationStatus.SENT, EnumSet.of(QuotationStatus.NEGOTIATING, QuotationStatus.APPROVED,
+                    QuotationStatus.REJECTED, QuotationStatus.EXPIRED),
+            QuotationStatus.NEGOTIATING, EnumSet.of(QuotationStatus.SENT, QuotationStatus.APPROVED,
+                    QuotationStatus.REJECTED, QuotationStatus.EXPIRED));
+    /** States from which a decided approval-engine round may set APPROVED/REJECTED. */
+    private static final Set<QuotationStatus> OPEN = EnumSet.of(
+            QuotationStatus.DRAFT, QuotationStatus.SENT, QuotationStatus.NEGOTIATING);
 
     private final QuotationRepository quotationRepository;
+    private final AccessScopeService accessScopeService;
     private final CostingService costingService;
     private final BuyerService buyerService;
     private final StyleService styleService;
@@ -114,15 +137,45 @@ public class QuotationService {
 
     @Transactional
     public QuotationResponse updateStatus(Long quotationId, QuotationStatus newStatus) {
+        return changeStatus(quotationId, newStatus, false);
+    }
+
+    private QuotationResponse changeStatus(Long quotationId, QuotationStatus newStatus, boolean fromApprovalEngine) {
         Quotation quotation = findInCurrentOrganization(quotationId);
-        if (!EDITABLE.contains(quotation.getStatus()) && newStatus != QuotationStatus.EXPIRED) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot change status of a quotation that is " + quotation.getStatus());
+        if (quotation.getStatus() == newStatus) {
+            return toResponse(quotation);
+        }
+        // Doc 10.3: marking a quotation APPROVED is the approval gate itself, so it needs
+        // QUOTATION_APPROVE — QUOTATION_MANAGE alone (e.g. a Junior Merchandiser) must not
+        // self-approve through the status endpoint.
+        if (newStatus == QuotationStatus.APPROVED && !canApproveQuotations()) {
+            throw new AccessDeniedException("Missing permission QUOTATION_APPROVE to approve a quotation");
+        }
+        boolean allowed = fromApprovalEngine
+                ? OPEN.contains(quotation.getStatus())
+                : TRANSITIONS.getOrDefault(quotation.getStatus(), Set.of()).contains(newStatus);
+        if (!allowed) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Cannot move a quotation from " + quotation.getStatus() + " to " + newStatus);
         }
         QuotationStatus before = quotation.getStatus();
         quotation.setStatus(newStatus);
         quotation = quotationRepository.save(quotation);
         auditService.record("QUOTATION_STATUS_CHANGE", "Quotation", quotation.getId(), before, newStatus, null);
         return toResponse(quotation);
+    }
+
+    /** A decided QUOTATION approval round (Doc 10.3 gate) is mirrored onto the quotation. */
+    @EventListener
+    public void onApprovalDecided(ApprovalDecidedEvent event) {
+        if (event.targetType() != ApprovalTargetType.QUOTATION) {
+            return;
+        }
+        if (event.decision() == ApprovalStatus.APPROVED) {
+            changeStatus(event.targetId(), QuotationStatus.APPROVED, true);
+        } else if (event.decision() == ApprovalStatus.REJECTED) {
+            changeStatus(event.targetId(), QuotationStatus.REJECTED, true);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -132,15 +185,14 @@ public class QuotationService {
 
     @Transactional(readOnly = true)
     public Page<QuotationResponse> list(Long buyerId, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Quotation> page = buyerId != null
-                ? quotationRepository.findByOrganizationIdAndBuyerId(organizationId, buyerId, pageable)
-                : quotationRepository.findByOrganizationId(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return quotationRepository.findVisible(currentUser().organizationId(), buyerId, scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Quotation findInCurrentOrganization(Long quotationId) {
-        return quotationRepository.findByIdAndOrganizationId(quotationId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return quotationRepository.findVisibleById(quotationId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Quotation not found"));
     }
 
@@ -177,6 +229,11 @@ public class QuotationService {
                 quotation.getValidityDate(), quotation.getLeadTimeDays(), quotation.getStatus(),
                 quotation.getSupersedesQuotation() != null ? quotation.getSupersedesQuotation().getId() : null,
                 quotation.getVersion());
+    }
+
+    private boolean canApproveQuotations() {
+        return SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("QUOTATION_APPROVE") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 
     private AuthenticatedUser currentUser() {

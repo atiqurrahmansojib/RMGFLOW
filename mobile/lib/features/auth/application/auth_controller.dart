@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/access_token_holder.dart';
-import '../../../core/network/failure.dart';
 import '../../../core/network/failure_mapper.dart';
 import '../../../core/storage/secure_token_storage.dart';
 import '../data/auth_repository_impl.dart';
@@ -81,26 +80,46 @@ class AuthController extends StateNotifier<AuthState> {
   /// first attempt failed with 401. Keeps the retry policy in the auth
   /// feature rather than the core network layer.
   Future<T> callAuthorized<T>(Future<T> Function() call) async {
+    final tokenUsed = _ref.read(accessTokenProvider);
     try {
       return await call();
-    } on DioException catch (e) {
+    } on DioException catch (e, st) {
       if (e.response?.statusCode != 401) rethrow;
-      final storedRefreshToken = await _tokenStorage.readRefreshToken();
-      if (storedRefreshToken == null) {
-        state = const AuthUnauthenticated();
-        rethrow;
+      // Another call already refreshed while this one was in flight: just retry.
+      final current = _ref.read(accessTokenProvider);
+      if (current != null && current != tokenUsed) {
+        return await call();
       }
       try {
-        final tokens = await _authRepository.refresh(storedRefreshToken);
-        await _tokenStorage.saveRefreshToken(tokens.refreshToken);
-        _ref.read(accessTokenProvider.notifier).state = tokens.accessToken;
-        return await call();
-      } on DioException {
-        await _tokenStorage.clear();
-        _ref.read(accessTokenProvider.notifier).state = null;
-        state = const AuthUnauthenticated();
-        rethrow;
+        await (_refreshing ??= _refreshTokens().whenComplete(() => _refreshing = null));
+      } on StateError {
+        // No stored refresh token: surface the original 401.
+        Error.throwWithStackTrace(e, st);
       }
+      return await call();
+    }
+  }
+
+  /// Single-flight refresh: screens fire several requests at once (My Day,
+  /// lookups), and refresh tokens rotate with reuse detection server-side, so
+  /// parallel refreshes with the same token would sign the user out.
+  Future<void>? _refreshing;
+
+  Future<void> _refreshTokens() async {
+    final storedRefreshToken = await _tokenStorage.readRefreshToken();
+    if (storedRefreshToken == null) {
+      state = const AuthUnauthenticated();
+      throw StateError('No refresh token');
+    }
+    try {
+      final tokens = await _authRepository.refresh(storedRefreshToken);
+      await _tokenStorage.saveRefreshToken(tokens.refreshToken);
+      _ref.read(accessTokenProvider.notifier).state = tokens.accessToken;
+    } on DioException {
+      await _tokenStorage.clear();
+      _ref.read(accessTokenProvider.notifier).state = null;
+      state = const AuthUnauthenticated();
+      rethrow;
     }
   }
 }

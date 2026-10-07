@@ -18,6 +18,15 @@ public class UserController {
 
     private final UserService userService;
 
+    /** Org-scoped user directory for assignee pickers; needs TASK_MANAGE (or Super Admin). */
+    @GetMapping
+    @PreAuthorize("hasAuthority('TASK_MANAGE') or hasRole('SUPER_ADMIN')")
+    public java.util.List<com.rmgflow.identity.dto.UserSummaryResponse> list(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "true") boolean activeOnly) {
+        return userService.listInOrganization(search, activeOnly);
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {

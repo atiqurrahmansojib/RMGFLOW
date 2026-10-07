@@ -2,7 +2,10 @@ package com.rmgflow.support;
 
 import com.rmgflow.identity.dto.LoginRequest;
 import com.rmgflow.identity.dto.TokenResponse;
+import com.rmgflow.identity.entity.Assignment;
 import com.rmgflow.identity.entity.Organization;
+import com.rmgflow.identity.entity.ScopeType;
+import com.rmgflow.identity.repository.AssignmentRepository;
 import com.rmgflow.identity.entity.Role;
 import com.rmgflow.identity.entity.User;
 import com.rmgflow.identity.repository.OrganizationRepository;
@@ -56,6 +59,26 @@ public class TestUsers {
         TokenResponse tokens = restTemplate.postForEntity(
                 "/api/v1/auth/login", new LoginRequest(email, PASSWORD, "junit"), TokenResponse.class).getBody();
         return tokens.accessToken();
+    }
+
+    /** Doc 5.3: creates a scoped user in an existing organization, assigns them to one
+     * buyer/factory (object-level scope) and logs them in. */
+    public static String createAndLoginAssigned(TestRestTemplate restTemplate, UserRepository userRepository,
+                                                RoleRepository roleRepository, OrganizationRepository organizationRepository,
+                                                PasswordEncoder passwordEncoder, AssignmentRepository assignmentRepository,
+                                                String roleName, Long organizationId, ScopeType scopeType, Long scopeId) {
+        String token = createAndLoginInOrganization(restTemplate, userRepository, roleRepository, organizationRepository,
+                passwordEncoder, roleName, organizationId);
+        User user = userRepository.findAll().stream()
+                .filter(u -> u.getOrganization().getId().equals(organizationId)
+                        && u.getEmail().startsWith(roleName.toLowerCase() + "+"))
+                .max(java.util.Comparator.comparing(User::getId)).orElseThrow();
+        Assignment assignment = new Assignment();
+        assignment.setUser(user);
+        assignment.setScopeType(scopeType);
+        assignment.setScopeId(scopeId);
+        assignmentRepository.save(assignment);
+        return token;
     }
 
     public static HttpHeaders bearer(String accessToken) {

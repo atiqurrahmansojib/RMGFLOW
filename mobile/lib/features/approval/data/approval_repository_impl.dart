@@ -14,11 +14,13 @@ class ApprovalRepositoryImpl implements ApprovalRepository {
   final Dio _dio;
 
   @override
-  Future<List<Approval>> inbox({ApprovalTargetType? targetType, int page = 0, int size = 25}) async {
+  Future<List<Approval>> inbox({ApprovalTargetType? targetType, int page = 0, int size = 100}) async {
     final response = await _dio.get('/approvals', queryParameters: {
       if (targetType != null) 'targetType': targetType.apiValue,
       'page': page,
       'size': size,
+      // Oldest first: the inbox is a queue — whatever has waited longest leads.
+      'sort': 'id,asc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Approval.fromJson(e as Map<String, dynamic>)).toList();

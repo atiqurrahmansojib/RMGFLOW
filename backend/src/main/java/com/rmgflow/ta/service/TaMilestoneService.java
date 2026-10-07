@@ -17,6 +17,8 @@ import com.rmgflow.ta.repository.TaTemplateMilestoneRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.context.event.EventListener;
+import com.rmgflow.order.service.OrderConfirmedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,7 @@ public class TaMilestoneService {
     private final TaTemplateMilestoneRepository taTemplateMilestoneRepository;
     private final TaTemplateService taTemplateService;
     private final OrderService orderService;
+    private final com.rmgflow.security.scope.AccessScopeService accessScopeService;
     private final UserRepository userRepository;
     private final AuditService auditService;
 
@@ -62,6 +65,29 @@ public class TaMilestoneService {
         }
 
         TaTemplate template = taTemplateService.resolveForOrder(styleIdForTemplateResolution, order.getBuyer().getId());
+        generate(order, template);
+        return list(orderId);
+    }
+
+    /**
+     * Document A15 / 10.3: when an order is confirmed (created CONFIRMED) with an
+     * ex-factory date, its T&A plan is generated automatically from the resolved
+     * template (style > buyer > org default). Silently skipped when there is no
+     * ex-factory date, no template, or milestones already exist — the manual
+     * "generate" action stays available for those cases.
+     */
+    @EventListener
+    public void onOrderConfirmed(OrderConfirmedEvent event) {
+        Order order = orderService.findInCurrentOrganization(event.orderId());
+        if (order.getExFactoryDate() == null || taMilestoneRepository.existsByOrderId(order.getId())) {
+            return;
+        }
+        taTemplateService.findForOrder(event.styleId(), order.getBuyer().getId())
+                .ifPresent(template -> generate(order, template));
+    }
+
+    private void generate(Order order, TaTemplate template) {
+        Long orderId = order.getId();
         List<TaTemplateMilestone> templateMilestones = taTemplateMilestoneRepository.findByTemplateIdOrderBySequence(template.getId());
 
         Map<Long, TaMilestone> createdByTemplateMilestoneId = new HashMap<>();
@@ -84,7 +110,6 @@ public class TaMilestoneService {
         }
 
         auditService.record("TA_MILESTONES_GENERATED", "Order", orderId, null, templateMilestones.size(), "template=" + template.getId());
-        return list(orderId);
     }
 
     /**
@@ -160,8 +185,14 @@ public class TaMilestoneService {
     public List<TaMilestoneResponse> myOverdueMilestones() {
         AuthenticatedUser user = (AuthenticatedUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         LocalDate today = LocalDate.now();
+        // Tenant + object-level scope (Doc 5.3): only milestones of orders the user can still see.
+        var scope = accessScopeService.current();
         return taMilestoneRepository.findByResponsibleUser_IdAndActualDateIsNull(user.id()).stream()
                 .filter(m -> m.getEffectiveDate().isBefore(today))
+                .filter(m -> m.getOrder().getOrganization().getId().equals(user.organizationId()))
+                .filter(m -> scope.unrestricted()
+                        || scope.buyerIds().contains(m.getOrder().getBuyer().getId())
+                        || m.getOrder().getItems().stream().anyMatch(i -> scope.factoryIds().contains(i.getFactory().getId())))
                 .map(this::toResponse)
                 .toList();
     }

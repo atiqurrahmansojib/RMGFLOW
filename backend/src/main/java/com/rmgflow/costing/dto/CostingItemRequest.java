@@ -9,8 +9,16 @@ import java.math.BigDecimal;
 public record CostingItemRequest(
         @NotNull CostingComponentType componentType,
         String description,
-        @NotNull @PositiveOrZero BigDecimal unitCost,
+        /** Null = "keep the previous version's unit cost" (Doc 5.2: roles without
+         * COSTING_VIEW_MARGIN never see unit costs, so they can't re-enter them). */
+        @PositiveOrZero BigDecimal unitCost,
         @NotNull @PositiveOrZero BigDecimal consumption,
-        @NotNull @PositiveOrZero BigDecimal wastagePercent
+        @NotNull @PositiveOrZero BigDecimal wastagePercent,
+        /** Line of the source costing this row continues; used to carry over a hidden unit cost. */
+        Long sourceItemId
 ) {
+    public CostingItemRequest(CostingComponentType componentType, String description, BigDecimal unitCost,
+                              BigDecimal consumption, BigDecimal wastagePercent) {
+        this(componentType, description, unitCost, consumption, wastagePercent, null);
+    }
 }

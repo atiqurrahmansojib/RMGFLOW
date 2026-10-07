@@ -15,6 +15,8 @@ import com.rmgflow.inquiry.repository.InquiryRepository;
 import com.rmgflow.masterdata.repository.CurrencyRepository;
 import com.rmgflow.masterdata.repository.SeasonRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +49,7 @@ public class InquiryService {
     );
 
     private final InquiryRepository inquiryRepository;
+    private final AccessScopeService accessScopeService;
     private final BuyerService buyerService;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
@@ -119,15 +122,14 @@ public class InquiryService {
 
     @Transactional(readOnly = true)
     public Page<InquiryResponse> list(InquiryStatus status, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Inquiry> page = status != null
-                ? inquiryRepository.findByOrganizationIdAndStatus(organizationId, status, pageable)
-                : inquiryRepository.findByOrganizationId(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return inquiryRepository.findVisible(currentUser().organizationId(), status, scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Inquiry findInCurrentOrganization(Long inquiryId) {
-        return inquiryRepository.findByIdAndOrganizationId(inquiryId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return inquiryRepository.findVisibleById(inquiryId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Inquiry not found"));
     }
 

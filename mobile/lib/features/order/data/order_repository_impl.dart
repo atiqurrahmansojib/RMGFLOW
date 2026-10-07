@@ -15,12 +15,14 @@ class OrderRepositoryImpl implements OrderRepository {
   final Dio _dio;
 
   @override
-  Future<List<Order>> list({int? buyerId, OrderStatus? status, int page = 0, int size = 25}) async {
+  Future<List<Order>> list({int? buyerId, OrderStatus? status, int page = 0, int size = 100}) async {
     final response = await _dio.get('/orders', queryParameters: {
       if (buyerId != null) 'buyerId': buyerId,
       if (status != null) 'status': status.apiValue,
       'page': page,
       'size': size,
+      // Newest first, so client-side search/filter covers recent work.
+      'sort': 'id,desc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();

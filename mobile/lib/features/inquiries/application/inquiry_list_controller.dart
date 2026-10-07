@@ -50,5 +50,12 @@ class InquiryListController extends StateNotifier<InquiryListState> {
     }
   }
 
+  /// Sets (or clears, with null) the status filter and reloads — `load`
+  /// alone can't clear it because a null status means "keep current".
+  Future<void> setFilter(InquiryStatus? status) {
+    _filter = status;
+    return load();
+  }
+
   Future<void> refresh() => load();
 }

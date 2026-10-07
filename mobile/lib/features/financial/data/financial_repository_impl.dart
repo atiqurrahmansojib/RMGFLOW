@@ -16,8 +16,16 @@ class FinancialRepositoryImpl implements FinancialRepository {
 
   @override
   Future<OrderFinancials> getFinancials(int orderId) async {
-    final response = await _dio.get('/orders/$orderId/financials');
-    return OrderFinancials.fromJson(response.data as Map<String, dynamic>);
+    try {
+      final response = await _dio.get('/orders/$orderId/financials');
+      return OrderFinancials.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      // The backend answers 404 until someone first saves this order's unit
+      // economics. That is "not set yet", not an error — otherwise the whole
+      // financial screen (receivables/payables included) would be unusable.
+      if (e.response?.statusCode != 404) rethrow;
+      return OrderFinancials(id: 0, orderId: orderId, isEstimate: true);
+    }
   }
 
   @override

@@ -18,6 +18,7 @@ import com.rmgflow.style.dto.StyleResponse;
 import com.rmgflow.support.PostgresTestContainerConfig;
 import com.rmgflow.support.TestSession;
 import com.rmgflow.support.TestUsers;
+import com.rmgflow.identity.entity.ScopeType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
@@ -58,6 +59,8 @@ class CostingFlowIntegrationTest {
     private OrganizationRepository organizationRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private com.rmgflow.identity.repository.AssignmentRepository assignmentRepository;
 
     private StyleResponse createStyle(String token) {
         BuyerRequest buyerRequest = new BuyerRequest("BYR-" + UUID.randomUUID(), "Costing Test Buyer", null, null, null, null, null, null);
@@ -95,8 +98,10 @@ class CostingFlowIntegrationTest {
 
         // Junior Merchandiser has COSTING_VIEW but NOT COSTING_VIEW_MARGIN (Doc 5.2/V15
         // seed) — must be in the SAME org as the costing to test masking, not tenant denial.
-        String juniorToken = TestUsers.createAndLoginInOrganization(restTemplate, userRepository, roleRepository,
-                organizationRepository, passwordEncoder, "JUNIOR_MERCHANDISER", seniorSession.organizationId());
+        // Doc 5.3: and assigned to the costing's buyer (object-level scope).
+        String juniorToken = TestUsers.createAndLoginAssigned(restTemplate, userRepository, roleRepository,
+                organizationRepository, passwordEncoder, assignmentRepository, "JUNIOR_MERCHANDISER",
+                seniorSession.organizationId(), ScopeType.BUYER, style.buyerId());
 
         ResponseEntity<CostingResponse> juniorViewResponse = restTemplate.exchange(
                 "/api/v1/costings/" + costing.id(), HttpMethod.GET, new HttpEntity<>(TestUsers.bearer(juniorToken)), CostingResponse.class);
@@ -107,6 +112,29 @@ class CostingFlowIntegrationTest {
             assertThat(item.unitCost()).isNull();
             assertThat(item.totalCost()).isNull();
         });
+
+        // Junior revises consumption only: hidden unit costs (sent as null) are carried
+        // over server-side from the source version instead of being wiped or required.
+        var hiddenItems = juniorViewResponse.getBody().items();
+        List<CostingItemRequest> revisedItems = List.of(
+                new CostingItemRequest(CostingComponentType.FABRIC, "Cotton fabric", null, new BigDecimal("2.0"), new BigDecimal("5"),
+                        hiddenItems.get(0).id()),
+                new CostingItemRequest(CostingComponentType.CM, "Cut & make", null, BigDecimal.ONE, BigDecimal.ZERO));
+        ResponseEntity<CostingResponse> revised = restTemplate.exchange("/api/v1/costings/" + costing.id() + "/revise",
+                HttpMethod.POST, new HttpEntity<>(new CostingRequest(style.id(), null, "USD", BigDecimal.ONE, 1000,
+                        new BigDecimal("6.00"), revisedItems), TestUsers.bearer(juniorToken)), CostingResponse.class);
+        assertThat(revised.getStatusCode().is2xxSuccessful()).isTrue();
+        CostingResponse seniorView = restTemplate.exchange("/api/v1/costings/" + revised.getBody().id(), HttpMethod.GET,
+                new HttpEntity<>(TestUsers.bearer(seniorToken)), CostingResponse.class).getBody();
+        // FABRIC: 2.00 * 2.0 * 1.05 = 4.20 ; CM: 1.50 -> 5.70
+        assertThat(seniorView.totalCost()).isEqualByComparingTo("5.70");
+
+        // A brand-new line without a unit cost cannot be carried over -> 400.
+        ResponseEntity<String> newLine = restTemplate.exchange("/api/v1/costings/" + revised.getBody().id() + "/revise",
+                HttpMethod.POST, new HttpEntity<>(new CostingRequest(style.id(), null, "USD", BigDecimal.ONE, 1000,
+                        new BigDecimal("6.00"), List.of(new CostingItemRequest(CostingComponentType.TRIMS, "Buttons", null,
+                        BigDecimal.ONE, BigDecimal.ZERO))), TestUsers.bearer(juniorToken)), String.class);
+        assertThat(newLine.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test

@@ -14,11 +14,13 @@ class QuotationRepositoryImpl implements QuotationRepository {
   final Dio _dio;
 
   @override
-  Future<List<Quotation>> list({int? buyerId, int page = 0, int size = 25}) async {
+  Future<List<Quotation>> list({int? buyerId, int page = 0, int size = 100}) async {
     final response = await _dio.get('/quotations', queryParameters: {
       if (buyerId != null) 'buyerId': buyerId,
       'page': page,
       'size': size,
+      // Newest first, so client-side search/filter covers recent work.
+      'sort': 'id,desc',
     });
     final content = (response.data as Map<String, dynamic>)['content'] as List;
     return content.map((e) => Quotation.fromJson(e as Map<String, dynamic>)).toList();

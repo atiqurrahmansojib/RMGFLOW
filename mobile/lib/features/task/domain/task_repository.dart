@@ -6,4 +6,5 @@ abstract class TaskRepository {
   Future<List<TaskItem>> myOpenTasks();
   Future<TaskItem> create(TaskDraft draft);
   Future<TaskItem> updateStatus(int id, TaskStatus status);
+  Future<TaskItem> reassign(int id, int? userId);
 }

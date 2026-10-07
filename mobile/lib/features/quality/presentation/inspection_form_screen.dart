@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/widgets/widgets.dart';
 import '../application/inspection_controller.dart';
 import '../domain/quality.dart';
 
@@ -29,13 +30,24 @@ class _InspectionFormScreenState extends ConsumerState<InspectionFormScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_inspectionType == InspectionType.final_ && _result != InspectionResult.pass) {
+      final ok = await confirmAction(
+        context,
+        title: 'Save a ${_result.label.toLowerCase()} final inspection?',
+        message: 'A final inspection that is not a pass blocks shipment of this order until it is re-inspected '
+            'or a permitted user overrides the quality gate.',
+        confirmLabel: 'Save inspection',
+        destructive: true,
+      );
+      if (!ok) return;
+    }
     final draft = InspectionDraft(
       inspectionType: _inspectionType,
-      inspectionDate: _inspectionDate.toIso8601String().split('T').first,
+      inspectionDate: toApiDate(_inspectionDate)!,
       inspectedQty: int.parse(_inspectedQtyController.text.trim()),
-      aqlLevel: _aqlLevelController.text.trim().isEmpty ? null : _aqlLevelController.text.trim(),
+      aqlLevel: blankToNull(_aqlLevelController.text),
       result: _result,
     );
     ref.read(inspectionFormControllerProvider.notifier).submit(widget.orderId, draft);
@@ -45,9 +57,10 @@ class _InspectionFormScreenState extends ConsumerState<InspectionFormScreen> {
   Widget build(BuildContext context) {
     ref.listen(inspectionFormControllerProvider, (previous, next) {
       if (next is InspectionFormSuccess) {
-        Navigator.of(context).pop();
+        showSuccessSnack(context, 'Inspection saved');
+        Navigator.of(context).pop(next.inspection);
       } else if (next is InspectionFormFailed) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.failure.message)));
+        showErrorSnack(context, next.failure.message);
       }
     });
     final formState = ref.watch(inspectionFormControllerProvider);
@@ -58,60 +71,70 @@ class _InspectionFormScreenState extends ConsumerState<InspectionFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.page,
           children: [
-            DropdownButtonFormField<InspectionType>(
-              value: _inspectionType,
-              decoration: const InputDecoration(labelText: 'Inspection Type'),
-              items: InspectionType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))).toList(),
-              onChanged: isSubmitting ? null : (v) => setState(() => _inspectionType = v!),
+            SectionHeader('Inspection', icon: AppModules.quality.icon, accentColor: AppModules.quality.color),
+            AppCard(
+              accentColor: AppModules.quality.color,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Inspection type', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: AppSpacing.sm),
+                  SegmentedButton<InspectionType>(
+                    segments: InspectionType.values.map((t) => ButtonSegment(value: t, label: Text(t.label))).toList(),
+                    selected: {_inspectionType},
+                    onSelectionChanged: isSubmitting ? null : (s) => setState(() => _inspectionType = s.first),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  DateField(
+                    label: 'Inspection date',
+                    required: true,
+                    enabled: !isSubmitting,
+                    value: _inspectionDate,
+                    lastDate: DateTime.now().add(const Duration(days: 1)),
+                    onChanged: (d) => setState(() => _inspectionDate = d ?? _inspectionDate),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _inspectedQtyController,
+                    enabled: !isSubmitting,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: NumberInput.integer,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Inspected quantity', suffixText: 'pcs'),
+                    validator: Validators.positiveInt(what: 'Inspected quantity'),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _aqlLevelController,
+                    enabled: !isSubmitting,
+                    keyboardType: NumberInput.decimalKeyboard,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: const InputDecoration(labelText: 'AQL level (optional)', hintText: 'e.g. 2.5'),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Inspection date'),
-              subtitle: Text(_inspectionDate.toIso8601String().split('T').first),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting
-                  ? null
-                  : () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _inspectionDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) setState(() => _inspectionDate = picked);
-                    },
+            SectionHeader('Result', icon: Icons.rule_rounded, accentColor: AppStatus.color(_result.apiValue)),
+            AppCard(
+              accentColor: AppStatus.color(_result.apiValue),
+              child: SegmentedButton<InspectionResult>(
+                segments: InspectionResult.values
+                    .map((r) => ButtonSegment(
+                          value: r,
+                          label: Text(r.label),
+                          icon: Icon(AppStatus.resolve(r.apiValue).icon),
+                        ))
+                    .toList(),
+                selected: {_result},
+                onSelectionChanged: isSubmitting ? null : (s) => setState(() => _result = s.first),
+              ),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _inspectedQtyController,
-              enabled: !isSubmitting,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Inspected Quantity'),
-              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _aqlLevelController,
-              enabled: !isSubmitting,
-              decoration: const InputDecoration(labelText: 'AQL Level (optional)'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<InspectionResult>(
-              value: _result,
-              decoration: const InputDecoration(labelText: 'Result'),
-              items: InspectionResult.values.map((r) => DropdownMenuItem(value: r, child: Text(r.label))).toList(),
-              onChanged: isSubmitting ? null : (v) => setState(() => _result = v!),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: isSubmitting ? null : _submit,
-              child: isSubmitting
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Save inspection'),
-            ),
+            const SizedBox(height: AppSpacing.xl),
+            PrimaryButton(
+                label: 'Save inspection', icon: Icons.check_rounded, loading: isSubmitting, onPressed: _submit),
           ],
         ),
       ),

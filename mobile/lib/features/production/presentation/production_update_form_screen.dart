@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common/widgets/widgets.dart';
 import '../application/production_controller.dart';
 import '../domain/production_update.dart';
 
@@ -35,12 +36,10 @@ class _ProductionUpdateFormScreenState extends ConsumerState<ProductionUpdateFor
     super.dispose();
   }
 
-  String _iso(DateTime d) => d.toIso8601String().split('T').first;
-
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final draft = ProductionUpdateDraft(
-      updateDate: _iso(_updateDate),
+      updateDate: toApiDate(_updateDate)!,
       cuttingQty: int.parse(_cuttingController.text.trim()),
       sewingQty: int.parse(_sewingController.text.trim()),
       finishingQty: int.parse(_finishingController.text.trim()),
@@ -51,67 +50,88 @@ class _ProductionUpdateFormScreenState extends ConsumerState<ProductionUpdateFor
     ref.read(productionUpdateFormControllerProvider.notifier).submit(widget.orderId, draft);
   }
 
-  Widget _qtyField(TextEditingController controller, String label, bool isSubmitting) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextFormField(
-          controller: controller,
-          enabled: !isSubmitting,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: label),
-          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-        ),
+  Widget _qtyField(TextEditingController controller, String label, IconData icon, bool isSubmitting,
+          {bool last = false}) =>
+      TextFormField(
+        controller: controller,
+        textInputAction: last ? TextInputAction.done : TextInputAction.next,
+        onFieldSubmitted: last ? (_) => _submit() : null,
+        enabled: !isSubmitting,
+        keyboardType: TextInputType.number,
+        inputFormatters: NumberInput.integer,
+        // Select-all on tap so overwriting the default 0 is one keystroke.
+        onTap: () => controller.selection = TextSelection(baseOffset: 0, extentOffset: controller.text.length),
+        decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), suffixText: 'pcs'),
+        validator: Validators.positiveInt(allowZero: true, what: label),
       );
 
   @override
   Widget build(BuildContext context) {
     ref.listen(productionUpdateFormControllerProvider, (previous, next) {
       if (next is ProductionUpdateFormSuccess) {
-        Navigator.of(context).pop();
+        showSuccessSnack(context, 'Production update saved');
+        Navigator.of(context).pop(true);
       } else if (next is ProductionUpdateFormFailed) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.failure.message)));
+        showErrorSnack(context, next.failure.message);
       }
     });
     final formState = ref.watch(productionUpdateFormControllerProvider);
     final isSubmitting = formState is ProductionUpdateFormSubmitting;
+
+    Widget pair(Widget a, Widget b) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: a),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: b),
+          ]),
+        );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daily Production Update')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.page,
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Update date'),
-              subtitle: Text(_iso(_updateDate)),
-              trailing: const Icon(Icons.calendar_today_outlined),
-              onTap: isSubmitting
-                  ? null
-                  : () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _updateDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) setState(() => _updateDate = picked);
-                    },
+            SectionHeader('Date', icon: Icons.event_rounded, accentColor: AppModules.production.color),
+            AppCard(
+              child: DateField(
+                label: 'Update date',
+                required: true,
+                enabled: !isSubmitting,
+                value: _updateDate,
+                lastDate: DateTime.now(),
+                onChanged: (d) => setState(() => _updateDate = d ?? _updateDate),
+              ),
             ),
-            const SizedBox(height: 12),
-            _qtyField(_cuttingController, 'Cutting qty', isSubmitting),
-            _qtyField(_sewingController, 'Sewing qty', isSubmitting),
-            _qtyField(_finishingController, 'Finishing qty', isSubmitting),
-            _qtyField(_packingController, 'Packing qty', isSubmitting),
-            _qtyField(_rejectionController, 'Rejection qty', isSubmitting),
-            _qtyField(_alterationController, 'Alteration qty', isSubmitting),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: isSubmitting ? null : _submit,
-              child: isSubmitting
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Save update'),
+            SectionHeader("Today's output",
+                subtitle: 'Pieces completed at each stage today (not cumulative)',
+                icon: Icons.precision_manufacturing_rounded,
+                accentColor: AppModules.production.color),
+            AppCard(
+              accentColor: AppModules.production.color,
+              child: Column(children: [
+                pair(
+                  _qtyField(_cuttingController, 'Cutting', Icons.content_cut_rounded, isSubmitting),
+                  _qtyField(_sewingController, 'Sewing', Icons.dry_cleaning_outlined, isSubmitting),
+                ),
+                pair(
+                  _qtyField(_finishingController, 'Finishing', Icons.iron_outlined, isSubmitting),
+                  _qtyField(_packingController, 'Packing', Icons.inventory_2_outlined, isSubmitting),
+                ),
+              ]),
             ),
+            const SectionHeader('Quality loss', icon: Icons.report_gmailerrorred_rounded, accentColor: AppColors.danger),
+            AppCard(
+              accentColor: AppColors.danger,
+              child: pair(
+                _qtyField(_rejectionController, 'Rejection', Icons.block_rounded, isSubmitting),
+                _qtyField(_alterationController, 'Alteration', Icons.build_outlined, isSubmitting, last: true),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            PrimaryButton(label: 'Save update', icon: Icons.check_rounded, loading: isSubmitting, onPressed: _submit),
           ],
         ),
       ),

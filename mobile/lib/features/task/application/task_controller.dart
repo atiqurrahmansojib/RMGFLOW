@@ -116,4 +116,16 @@ class TaskActionController extends StateNotifier<TaskActionState> {
       state = TaskActionFailed(mapDioErrorToFailure(e));
     }
   }
+
+  Future<void> reassign(int id, int? userId) async {
+    state = const TaskActionInProgress();
+    try {
+      final task = await _ref.read(authControllerProvider.notifier).callAuthorized(
+            () => _ref.read(taskRepositoryProvider).reassign(id, userId),
+          );
+      state = TaskActionSuccess(task);
+    } on DioException catch (e) {
+      state = TaskActionFailed(mapDioErrorToFailure(e));
+    }
+  }
 }

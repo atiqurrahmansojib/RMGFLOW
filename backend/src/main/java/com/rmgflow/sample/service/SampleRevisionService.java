@@ -3,6 +3,7 @@ package com.rmgflow.sample.service;
 import com.rmgflow.approval.dto.ApprovalResponse;
 import com.rmgflow.approval.entity.ApprovalStatus;
 import com.rmgflow.approval.entity.ApprovalTargetType;
+import com.rmgflow.approval.service.ApprovalDecidedEvent;
 import com.rmgflow.approval.service.ApprovalService;
 import com.rmgflow.audit.service.AuditService;
 import com.rmgflow.sample.dto.SampleRevisionRequest;
@@ -12,6 +13,7 @@ import com.rmgflow.sample.entity.SampleRevision;
 import com.rmgflow.sample.entity.SampleStatus;
 import com.rmgflow.sample.repository.SampleRevisionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,6 +88,17 @@ public class SampleRevisionService {
         }
         sampleService.updateStatus(sample.getId(), mapped);
         return toResponse(latestRevision);
+    }
+
+    /** Rolls a decided revision round onto the sample automatically, so the status is
+     * right without the client having to call sync-status afterwards. */
+    @EventListener
+    public void onApprovalDecided(ApprovalDecidedEvent event) {
+        if (event.targetType() != ApprovalTargetType.SAMPLE_REVISION || !SAMPLE_STATUS_BY_DECISION.containsKey(event.decision())) {
+            return;
+        }
+        sampleRevisionRepository.findById(event.targetId())
+                .ifPresent(revision -> syncStatusFromLatestApproval(revision.getSample().getId()));
     }
 
     @Transactional(readOnly = true)

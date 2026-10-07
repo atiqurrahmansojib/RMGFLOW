@@ -12,6 +12,7 @@ import com.rmgflow.identity.repository.OrganizationRepository;
 import com.rmgflow.identity.repository.UserRepository;
 import com.rmgflow.security.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -63,6 +64,7 @@ public class ApprovalService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ApprovalResponse submit(ApprovalTargetType targetType, Long targetId) {
@@ -109,12 +111,15 @@ public class ApprovalService {
         approval = approvalRepository.save(approval);
 
         auditService.record("APPROVAL_DECIDE", approval.getTargetType().name(), approval.getTargetId(), before, approval.getStatus(), request.rejectionReason());
+        eventPublisher.publishEvent(new ApprovalDecidedEvent(approval.getTargetType(), approval.getTargetId(), approval.getStatus()));
         return toResponse(approval);
     }
 
     @Transactional(readOnly = true)
     public List<ApprovalResponse> history(ApprovalTargetType targetType, Long targetId) {
-        return approvalRepository.findByTargetTypeAndTargetIdOrderByRoundNoDesc(targetType, targetId)
+        // Org-scoped so a guessed targetId from another tenant returns nothing (IDOR).
+        return approvalRepository.findByOrganizationIdAndTargetTypeAndTargetIdOrderByRoundNoDesc(
+                        currentUser().organizationId(), targetType, targetId)
                 .stream().map(this::toResponse).toList();
     }
 
@@ -125,13 +130,53 @@ public class ApprovalService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No approval round found"));
     }
 
+    /** Latest round's status for a target in the caller's organization, or null if never submitted. */
+    @Transactional(readOnly = true)
+    public ApprovalStatus latestStatus(ApprovalTargetType targetType, Long targetId) {
+        return approvalRepository.findTopByOrganizationIdAndTargetTypeAndTargetIdOrderByRoundNoDesc(
+                        currentUser().organizationId(), targetType, targetId)
+                .map(Approval::getStatus)
+                .orElse(null);
+    }
+
+    /**
+     * Pending Approvals Inbox (Doc 7 #67): only SUBMITTED rounds, and only for target
+     * types the caller may decide. Asking for a specific type without its decide
+     * permission is refused (403); with no filter the inbox silently narrows to the
+     * decidable types (empty when there are none), so it never lists rounds the caller
+     * could not act on or is not entitled to see.
+     */
     @Transactional(readOnly = true)
     public Page<ApprovalResponse> pendingInbox(ApprovalTargetType targetType, Pageable pageable) {
         Long organizationId = currentUser().organizationId();
-        Page<Approval> page = targetType != null
-                ? approvalRepository.findByOrganizationIdAndTargetType(organizationId, targetType, pageable)
-                : approvalRepository.findByOrganizationIdAndStatus(organizationId, ApprovalStatus.SUBMITTED, pageable);
-        return page.map(this::toResponse);
+        if (targetType != null) {
+            requireDecisionPermission(targetType);
+            return approvalRepository.findByOrganizationIdAndTargetTypeAndStatus(
+                    organizationId, targetType, ApprovalStatus.SUBMITTED, pageable).map(this::toResponse);
+        }
+        Set<ApprovalTargetType> decidable = decidableTargetTypes();
+        if (decidable.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return approvalRepository.findByOrganizationIdAndTargetTypeInAndStatus(
+                organizationId, decidable, ApprovalStatus.SUBMITTED, pageable).map(this::toResponse);
+    }
+
+    /** Target types the caller may decide: all for SUPER_ADMIN, else those whose decide permission they hold. */
+    private Set<ApprovalTargetType> decidableTargetTypes() {
+        Set<String> authorities = new java.util.HashSet<>();
+        SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .forEach(a -> authorities.add(a.getAuthority()));
+        if (authorities.contains("ROLE_SUPER_ADMIN")) {
+            return EnumSet.allOf(ApprovalTargetType.class);
+        }
+        Set<ApprovalTargetType> result = EnumSet.noneOf(ApprovalTargetType.class);
+        DECISION_PERMISSION_BY_TARGET_TYPE.forEach((type, permission) -> {
+            if (authorities.contains(permission)) {
+                result.add(type);
+            }
+        });
+        return result;
     }
 
     private void requireDecisionPermission(ApprovalTargetType targetType) {

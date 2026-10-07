@@ -25,8 +25,7 @@ class CostingListError extends CostingListState {
   final Failure failure;
 }
 
-final costingListControllerProvider =
-    StateNotifierProvider.autoDispose<CostingListController, CostingListState>((ref) {
+final costingListControllerProvider = StateNotifierProvider.autoDispose<CostingListController, CostingListState>((ref) {
   return CostingListController(ref)..load();
 });
 

@@ -44,6 +44,7 @@ class StyleDraft {
     required this.buyerId,
     this.buyerStyleNo,
     this.productCategory,
+    this.seasonId,
     this.gender,
     this.description,
   });
@@ -52,6 +53,7 @@ class StyleDraft {
   final int buyerId;
   final String? buyerStyleNo;
   final String? productCategory;
+  final int? seasonId;
   final String? gender;
   final String? description;
 
@@ -60,6 +62,7 @@ class StyleDraft {
         'buyerId': buyerId,
         'buyerStyleNo': buyerStyleNo,
         'productCategory': productCategory,
+        'seasonId': seasonId,
         'gender': gender,
         'description': description,
       };

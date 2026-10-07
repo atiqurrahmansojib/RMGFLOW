@@ -12,4 +12,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /** Security review fix: lets callers assign a user (e.g. as a merchandiser on an
      * inquiry) only when that user is within the caller's own organization. */
     Optional<User> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "roles")
+    java.util.List<User> findByOrganizationIdOrderByFullNameAsc(Long organizationId);
 }

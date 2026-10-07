@@ -164,7 +164,7 @@ class Phase12IntegrationTest {
                 new HttpEntity<>(orderRequest, TestUsers.bearer(gmToken)), OrderResponse.class).getBody();
 
         TaMilestoneResponse milestone = restTemplate.exchange(
-                "/api/v1/orders/" + order.id() + "/ta-milestones/generate?styleId=" + style.id(), HttpMethod.POST,
+                "/api/v1/orders/" + order.id() + "/ta-milestones", HttpMethod.GET,
                 new HttpEntity<>(TestUsers.bearer(gmToken)), TaMilestoneResponse[].class).getBody()[0];
         assertThat(milestone.plannedDate()).isEqualTo(pastExFactory);
 

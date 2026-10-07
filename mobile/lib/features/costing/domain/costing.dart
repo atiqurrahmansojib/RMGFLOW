@@ -1,7 +1,23 @@
 /// Mirrors backend CostingComponentType (com.rmgflow.costing.entity.CostingComponentType, Doc 8.5/10).
 enum CostingComponentType {
-  fabric, knitting, dyeing, finishing, trims, cm, washing, printing, embroidery,
-  testing, inspection, packaging, freight, commission, bankCharge, wastage, overhead, other;
+  fabric,
+  knitting,
+  dyeing,
+  finishing,
+  trims,
+  cm,
+  washing,
+  printing,
+  embroidery,
+  testing,
+  inspection,
+  packaging,
+  freight,
+  commission,
+  bankCharge,
+  wastage,
+  overhead,
+  other;
 
   String get apiValue => switch (this) {
         CostingComponentType.bankCharge => 'BANK_CHARGE',
@@ -20,14 +36,15 @@ enum CostingComponentType {
 
 /// Mirrors backend CostingStatus (com.rmgflow.costing.entity.CostingStatus, Doc 8.5).
 enum CostingStatus {
-  draft, approved, superseded;
+  draft,
+  approved,
+  superseded;
 
   String get apiValue => name.toUpperCase();
 
   String get label => name[0].toUpperCase() + name.substring(1);
 
-  static CostingStatus fromApiValue(String value) =>
-      CostingStatus.values.firstWhere((s) => s.apiValue == value);
+  static CostingStatus fromApiValue(String value) => CostingStatus.values.firstWhere((s) => s.apiValue == value);
 }
 
 /// Mirrors backend CostingItemResponse.
@@ -46,22 +63,26 @@ class CostingItem {
         id: json['id'] as int,
         componentType: CostingComponentType.fromApiValue(json['componentType'] as String),
         description: json['description'] as String?,
-        unitCost: (json['unitCost'] as num).toDouble(),
+        unitCost: (json['unitCost'] as num?)?.toDouble(),
         consumption: (json['consumption'] as num).toDouble(),
         wastagePercent: (json['wastagePercent'] as num).toDouble(),
-        totalCost: (json['totalCost'] as num).toDouble(),
+        totalCost: (json['totalCost'] as num?)?.toDouble(),
       );
 
   final int id;
   final CostingComponentType componentType;
   final String? description;
-  final double unitCost;
+  /// Null when the caller lacks COSTING_VIEW_MARGIN — the backend masks cost
+  /// figures server-side (Doc 5), so the app must render them as hidden.
+  final double? unitCost;
   final double consumption;
   final double wastagePercent;
-  final double totalCost;
+  final double? totalCost;
 }
 
-/// Mirrors backend CostingItemRequest — the id is client-local only (never sent).
+/// Mirrors backend CostingItemRequest. `unitCost` null means "keep the
+/// source version's hidden unit cost" (roles without margin visibility);
+/// `sourceItemId` tells the server which earlier line this row continues.
 class CostingItemDraft {
   const CostingItemDraft({
     required this.componentType,
@@ -69,13 +90,15 @@ class CostingItemDraft {
     required this.unitCost,
     required this.consumption,
     required this.wastagePercent,
+    this.sourceItemId,
   });
 
   final CostingComponentType componentType;
   final String? description;
-  final double unitCost;
+  final double? unitCost;
   final double consumption;
   final double wastagePercent;
+  final int? sourceItemId;
 
   Map<String, dynamic> toJson() => {
         'componentType': componentType.apiValue,
@@ -83,6 +106,7 @@ class CostingItemDraft {
         'unitCost': unitCost,
         'consumption': consumption,
         'wastagePercent': wastagePercent,
+        if (sourceItemId != null) 'sourceItemId': sourceItemId,
       };
 }
 
@@ -116,13 +140,11 @@ class Costing {
         quantity: json['quantity'] as int,
         status: CostingStatus.fromApiValue(json['status'] as String),
         targetPrice: (json['targetPrice'] as num?)?.toDouble(),
-        totalCost: (json['totalCost'] as num).toDouble(),
+        totalCost: (json['totalCost'] as num?)?.toDouble(),
         marginPercent: (json['marginPercent'] as num?)?.toDouble(),
         supersededFromId: json['supersededFromId'] as int?,
         version: json['version'] as int,
-        items: (json['items'] as List? ?? [])
-            .map((e) => CostingItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        items: (json['items'] as List? ?? []).map((e) => CostingItem.fromJson(e as Map<String, dynamic>)).toList(),
       );
 
   final int id;
@@ -134,7 +156,8 @@ class Costing {
   final int quantity;
   final CostingStatus status;
   final double? targetPrice;
-  final double totalCost;
+  /// Null (with [marginPercent]) for roles without COSTING_VIEW_MARGIN.
+  final double? totalCost;
   final double? marginPercent;
   final int? supersededFromId;
   final int version;

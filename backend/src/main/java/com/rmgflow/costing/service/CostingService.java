@@ -1,6 +1,8 @@
 package com.rmgflow.costing.service;
 
+import com.rmgflow.approval.entity.ApprovalStatus;
 import com.rmgflow.approval.entity.ApprovalTargetType;
+import com.rmgflow.approval.service.ApprovalDecidedEvent;
 import com.rmgflow.approval.service.ApprovalService;
 import com.rmgflow.audit.service.AuditService;
 import com.rmgflow.common.ApiException;
@@ -15,8 +17,11 @@ import com.rmgflow.identity.repository.UserRepository;
 import com.rmgflow.inquiry.service.InquiryService;
 import com.rmgflow.masterdata.repository.CurrencyRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import com.rmgflow.style.service.StyleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -42,6 +47,7 @@ import java.util.List;
 public class CostingService {
 
     private final CostingRepository costingRepository;
+    private final AccessScopeService accessScopeService;
     private final CostingItemRepository costingItemRepository;
     private final StyleService styleService;
     private final OrganizationRepository organizationRepository;
@@ -53,6 +59,10 @@ public class CostingService {
 
     @Transactional
     public CostingResponse create(CostingRequest request) {
+        return create(request, List.of());
+    }
+
+    private CostingResponse create(CostingRequest request, List<CostingItem> carryOverFrom) {
         var style = styleService.findInCurrentOrganization(request.styleId());
         if (!currencyRepository.existsById(request.currency())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Currency not found");
@@ -76,7 +86,7 @@ public class CostingService {
         }
         costing = costingRepository.save(costing);
 
-        applyItems(costing, request.items());
+        applyItems(costing, request.items(), carryOverFrom);
         recalculate(costing);
         costing = costingRepository.saveAndFlush(costing);
 
@@ -93,12 +103,21 @@ public class CostingService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only a DRAFT costing can be edited; create a new version instead");
         }
 
+        List<CostingItem> previousItems = new ArrayList<>();
+        for (CostingItem old : costing.getItems()) {
+            CostingItem copy = new CostingItem();
+            copy.setId(old.getId());
+            copy.setComponentType(old.getComponentType());
+            copy.setDescription(old.getDescription());
+            copy.setUnitCost(old.getUnitCost());
+            previousItems.add(copy);
+        }
         costingItemRepository.deleteAll(costing.getItems());
         costing.getItems().clear();
         costing.setExchangeRate(request.exchangeRate());
         costing.setQuantity(request.quantity());
         costing.setTargetPrice(request.targetPrice());
-        applyItems(costing, request.items());
+        applyItems(costing, request.items(), previousItems);
         recalculate(costing);
         costing = costingRepository.saveAndFlush(costing);
 
@@ -118,10 +137,19 @@ public class CostingService {
     }
 
     /** Document 10.2: called after ApprovalService.decide() approves this costing's
-     * latest round — flips DRAFT -> APPROVED, the one transition the DB trigger allows. */
+     * latest round — flips DRAFT -> APPROVED, the one transition the DB trigger allows.
+     * Runs automatically via onApprovalDecided(); the endpoint stays for older clients
+     * and is idempotent. Re-reads the real approval round so it can't approve a costing
+     * that was never approved through the engine. */
     @Transactional
     public CostingResponse markApproved(Long costingId) {
         Costing costing = findInCurrentOrganization(costingId);
+        if (costing.getStatus() == CostingStatus.APPROVED) {
+            return toResponse(costing);
+        }
+        if (approvalService.latestStatus(ApprovalTargetType.COSTING, costingId) != ApprovalStatus.APPROVED) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Costing has no APPROVED approval round");
+        }
         if (costing.getStatus() != CostingStatus.DRAFT) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Costing is not in DRAFT status");
         }
@@ -132,6 +160,13 @@ public class CostingService {
         return toResponse(costing);
     }
 
+    @EventListener
+    public void onApprovalDecided(ApprovalDecidedEvent event) {
+        if (event.targetType() == ApprovalTargetType.COSTING && event.decision() == ApprovalStatus.APPROVED) {
+            markApproved(event.targetId());
+        }
+    }
+
     /** Document 9.1: creates version N+1 referencing version N — the only way to
      * change an APPROVED costing's numbers. If the source was still DRAFT (never
      * approved), it's marked SUPERSEDED (an allowed transition, Doc 8.5); an
@@ -140,7 +175,7 @@ public class CostingService {
     public CostingResponse createRevision(Long sourceCostingId, CostingRequest request) {
         Costing source = findInCurrentOrganization(sourceCostingId);
 
-        CostingResponse newVersion = create(request);
+        CostingResponse newVersion = create(request, source.getItems());
         Costing newCosting = costingRepository.getReferenceById(newVersion.id());
         newCosting.setSupersededFrom(source);
         costingRepository.save(newCosting);
@@ -160,36 +195,69 @@ public class CostingService {
 
     @Transactional(readOnly = true)
     public Page<CostingResponse> list(Long styleId, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Costing> page = styleId != null
-                ? costingRepository.findByOrganizationIdAndStyleId(organizationId, styleId, pageable)
-                : costingRepository.findByOrganizationId(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return costingRepository.findVisible(currentUser().organizationId(), styleId, scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Costing findInCurrentOrganization(Long costingId) {
-        return costingRepository.findByIdAndOrganizationId(costingId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return costingRepository.findVisibleById(costingId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Costing not found"));
     }
 
-    private void applyItems(Costing costing, List<CostingItemRequest> itemRequests) {
+    private void applyItems(Costing costing, List<CostingItemRequest> itemRequests, List<CostingItem> carryOverFrom) {
+        List<CostingItem> unused = new ArrayList<>(carryOverFrom);
         for (CostingItemRequest itemRequest : itemRequests) {
+            BigDecimal unitCost = itemRequest.unitCost() != null
+                    ? itemRequest.unitCost()
+                    : carriedOverUnitCost(itemRequest, unused);
             CostingItem item = new CostingItem();
             item.setCosting(costing);
             item.setComponentType(itemRequest.componentType());
             item.setDescription(itemRequest.description());
-            item.setUnitCost(itemRequest.unitCost());
+            item.setUnitCost(unitCost);
             item.setConsumption(itemRequest.consumption());
             item.setWastagePercent(itemRequest.wastagePercent());
-            item.setTotalCost(computeItemTotal(itemRequest));
+            item.setTotalCost(computeItemTotal(unitCost, itemRequest));
             costing.getItems().add(item);
         }
     }
 
+    /**
+     * Doc 5.2 masking + 9.1 versioning: a role that never sees unit costs (Junior
+     * Merchandiser) revises consumption/wastage only and sends unitCost=null; the
+     * hidden value is carried over server-side from the source version's matching
+     * line (by sourceItemId, else first unused line with the same component and
+     * description) instead of being wiped or required.
+     */
+    private BigDecimal carriedOverUnitCost(CostingItemRequest request, List<CostingItem> unused) {
+        CostingItem match = null;
+        if (request.sourceItemId() != null) {
+            match = unused.stream().filter(i -> request.sourceItemId().equals(i.getId())).findFirst().orElse(null);
+        }
+        if (match == null) {
+            match = unused.stream()
+                    .filter(i -> i.getComponentType() == request.componentType()
+                            && java.util.Objects.equals(blankToNull(i.getDescription()), blankToNull(request.description())))
+                    .findFirst().orElse(null);
+        }
+        if (match == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "unitCost is required for new cost line "
+                    + request.componentType() + (request.description() != null ? " (" + request.description() + ")" : ""));
+        }
+        unused.remove(match);
+        return match.getUnitCost();
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     /** Document 9.1 formula: total_cost = unit_cost * consumption * (1 + wastage_percent/100). */
-    private BigDecimal computeItemTotal(CostingItemRequest request) {
+    private BigDecimal computeItemTotal(BigDecimal unitCost, CostingItemRequest request) {
         BigDecimal wastageMultiplier = BigDecimal.ONE.add(request.wastagePercent().divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-        return request.unitCost().multiply(request.consumption()).multiply(wastageMultiplier).setScale(4, RoundingMode.HALF_UP);
+        return unitCost.multiply(request.consumption()).multiply(wastageMultiplier).setScale(4, RoundingMode.HALF_UP);
     }
 
     /** Document 9.1: total cost and margin % recomputed server-side on every save — never client-supplied. */

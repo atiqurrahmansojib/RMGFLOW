@@ -5,6 +5,13 @@ spring:
     multipart:
       max-file-size: 25MB
       max-request-size: 25MB
+  jackson:
+    deserialization:
+      # Jackson 3 (Spring Boot 4) flipped this default to true, so a request record with a
+      # primitive component (OrderRequest.overrideFactoryApproval, contact `primary`, the
+      # production quantities...) rejected any client that simply omitted the field with
+      # "Failed to read request". Omitted primitives now take their Java default again.
+      fail-on-null-for-primitives: false
   jpa:
     hibernate:
       ddl-auto: validate
@@ -46,6 +53,10 @@ rmgflow:
     root-directory: ${STORAGE_ROOT:./data/attachments}
     max-file-size-bytes: ${STORAGE_MAX_FILE_SIZE_BYTES:26214400}
     download-token-ttl-minutes: ${STORAGE_DOWNLOAD_TTL_MIN:5}
+  demo-data:
+    # Opt-in demo dataset (config/DemoDataSeeder): 12 role logins + data on every
+    # screen/report. Development/UAT only — never set DEMO_DATA=true in production.
+    enabled: ${DEMO_DATA:false}
 
 management:
   endpoints:

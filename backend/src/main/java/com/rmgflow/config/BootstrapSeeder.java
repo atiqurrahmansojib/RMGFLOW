@@ -9,6 +9,7 @@ import com.rmgflow.identity.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.Set;
  * credential (Document 15.6).
  */
 @Component
+@Order(1) // before DemoDataSeeder, which would otherwise make userRepository.count() > 0
 @RequiredArgsConstructor
 public class BootstrapSeeder implements ApplicationRunner {
 

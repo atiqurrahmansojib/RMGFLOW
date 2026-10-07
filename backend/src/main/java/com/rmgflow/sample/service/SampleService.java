@@ -12,6 +12,8 @@ import com.rmgflow.sample.entity.SampleStatus;
 import com.rmgflow.sample.repository.SampleRepository;
 import com.rmgflow.sample.repository.SampleTypeRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import com.rmgflow.style.service.StyleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ import java.util.UUID;
 public class SampleService {
 
     private final SampleRepository sampleRepository;
+    private final AccessScopeService accessScopeService;
     private final SampleTypeRepository sampleTypeRepository;
     private final StyleService styleService;
     private final BuyerService buyerService;
@@ -43,7 +46,7 @@ public class SampleService {
         var style = styleService.findInCurrentOrganization(request.styleId());
         var buyer = buyerService.findInCurrentOrganization(request.buyerId());
         var factory = request.factoryId() != null ? factoryService.findInCurrentOrganization(request.factoryId()) : null;
-        if (!sampleTypeRepository.existsById(request.sampleTypeId())) {
+        if (!sampleTypeRepository.existsVisibleToOrganization(request.sampleTypeId(), currentUser().organizationId())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Sample type not found");
         }
 
@@ -78,15 +81,14 @@ public class SampleService {
 
     @Transactional(readOnly = true)
     public Page<SampleResponse> list(SampleStatus status, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Sample> page = status != null
-                ? sampleRepository.findByOrganizationIdAndCurrentStatus(organizationId, status, pageable)
-                : sampleRepository.findByOrganizationId(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return sampleRepository.findVisible(currentUser().organizationId(), status, scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     public Sample findInCurrentOrganization(Long sampleId) {
-        return sampleRepository.findByIdAndOrganizationId(sampleId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return sampleRepository.findVisibleById(sampleId, currentUser().organizationId(), scope.unrestricted(), scope.buyerIdsParam(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Sample not found"));
     }
 

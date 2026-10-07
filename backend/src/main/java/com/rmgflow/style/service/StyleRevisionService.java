@@ -10,6 +10,8 @@ import com.rmgflow.style.entity.StyleRevision;
 import com.rmgflow.style.repository.StyleRevisionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class StyleRevisionService {
     private final StyleService styleService;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public StyleRevisionResponse create(Long styleId, StyleRevisionRequest request) {
@@ -47,7 +50,7 @@ public class StyleRevisionService {
         revision.setGsm(request.gsm());
         revision.setColor(request.color());
         revision.setSizeRange(request.sizeRange());
-        revision.setMeasurementSpec(request.measurementSpecJson());
+        revision.setMeasurementSpec(toJsonSpec(request.measurementSpecJson()));
         revision.setCreatedBy(userRepository.getReferenceById(currentUser().id()));
         revision = styleRevisionRepository.save(revision);
 
@@ -73,5 +76,21 @@ public class StyleRevisionService {
 
     private AuthenticatedUser currentUser() {
         return (AuthenticatedUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    /** The column is JSONB: keep valid JSON as-is, wrap free text typed on mobile
+     * ("Chest 52 cm, length 70 cm") as {"notes": ...} instead of failing the insert. */
+    private String toJsonSpec(String spec) {
+        if (spec == null || spec.isBlank()) {
+            return null;
+        }
+        try {
+            if (objectMapper.readTree(spec).isContainer()) {
+                return spec;
+            }
+        } catch (JacksonException notJson) {
+            // fall through: store the text as notes
+        }
+        return objectMapper.writeValueAsString(java.util.Map.of("notes", spec.trim()));
     }
 }

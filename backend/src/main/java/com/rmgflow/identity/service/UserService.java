@@ -56,6 +56,19 @@ public class UserService {
         return toResponse(user);
     }
 
+    /** Org-scoped user directory for pickers (task assignee, Doc 7); optional name/email filter. */
+    @Transactional(readOnly = true)
+    public java.util.List<com.rmgflow.identity.dto.UserSummaryResponse> listInOrganization(String search, boolean activeOnly) {
+        String needle = search == null ? "" : search.trim().toLowerCase();
+        return userRepository.findByOrganizationIdOrderByFullNameAsc(currentOrganizationId()).stream()
+                .filter(u -> !activeOnly || u.isActive())
+                .filter(u -> needle.isEmpty() || u.getFullName().toLowerCase().contains(needle)
+                        || u.getEmail().toLowerCase().contains(needle))
+                .map(u -> new com.rmgflow.identity.dto.UserSummaryResponse(u.getId(), u.getFullName(), u.getEmail(),
+                        u.getRoles().stream().map(Role::getName).collect(Collectors.toUnmodifiableSet()), u.isActive()))
+                .toList();
+    }
+
     private Long currentOrganizationId() {
         AuthenticatedUser principal = (AuthenticatedUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return principal.organizationId();

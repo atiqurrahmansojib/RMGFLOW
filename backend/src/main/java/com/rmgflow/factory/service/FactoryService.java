@@ -10,6 +10,8 @@ import com.rmgflow.factory.repository.FactoryRepository;
 import com.rmgflow.identity.repository.OrganizationRepository;
 import com.rmgflow.masterdata.repository.CountryRepository;
 import com.rmgflow.security.AuthenticatedUser;
+import com.rmgflow.security.scope.AccessScope;
+import com.rmgflow.security.scope.AccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FactoryService {
 
     private final FactoryRepository factoryRepository;
+    private final AccessScopeService accessScopeService;
     private final OrganizationRepository organizationRepository;
     private final CountryRepository countryRepository;
     private final AuditService auditService;
@@ -66,11 +69,8 @@ public class FactoryService {
 
     @Transactional(readOnly = true)
     public Page<FactoryResponse> list(PartnerType partnerType, Pageable pageable) {
-        Long organizationId = currentUser().organizationId();
-        Page<Factory> page = partnerType != null
-                ? factoryRepository.findByOrganizationIdAndActiveTrueAndPartnerType(organizationId, partnerType, pageable)
-                : factoryRepository.findByOrganizationIdAndActiveTrue(organizationId, pageable);
-        return page.map(this::toResponse);
+        AccessScope scope = accessScopeService.current();
+        return factoryRepository.findVisible(currentUser().organizationId(), partnerType, scope.allFactories(), scope.factoryIdsParam(), pageable).map(this::toResponse);
     }
 
     @Transactional
@@ -86,7 +86,9 @@ public class FactoryService {
      * (InquiryFactoryCandidateService, etc.) can resolve a factory within the
      * caller's tenant without re-deriving the same check. */
     public Factory findInCurrentOrganization(Long factoryId) {
-        return factoryRepository.findByIdAndOrganizationId(factoryId, currentUser().organizationId())
+        // Doc 5.3: tenant AND object-level scope — an out-of-scope record is a 404, same as a missing one.
+        AccessScope scope = accessScopeService.current();
+        return factoryRepository.findVisibleById(factoryId, currentUser().organizationId(), scope.allFactories(), scope.factoryIdsParam())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Factory not found"));
     }
 
