@@ -1,0 +1,62 @@
+# Demo / local files
+
+/demo/
+
+# Java / Spring Boot
+
+target/
+*.class
+
+# Environment / secrets
+
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+application-local.properties
+application-prod.yml
+application-prod.yaml
+application-prod.properties
+
+# Logs
+
+*.log
+logs/
+
+# IDE
+
+.idea/
+*.iml
+.vscode/
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# Flutter
+
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.gradle/
+
+# Android
+
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+
+# Generated / temporary
+
+*.tmp
+*.temp
+*.swp
+*~
+
